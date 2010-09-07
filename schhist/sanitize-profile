@@ -1,0 +1,82 @@
+#!/usr/bin/perl
+#
+# sanitize-profile - Remove items from a KiCad profile that may cause an upset
+#
+# Written 2010 by Werner Almesberger
+# Copyright 2010 Werner Almesberger
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+
+
+@LIBS = ("/usr/share/kicad/library", "/usr/local/share/kicad/library");
+
+
+sub rewrite
+{
+    local ($s) = @_;
+
+    return $s if $section ne "eeschema/libraries";
+    return $s unless /^LibName(\d+)=(.*)\s*$/;
+    my $lib = $2;
+    if ($1 == $in_lib) {
+	$in_lib++;
+    } else {
+	print STDERR "LibName$1 when expecting $next_lib. Renumbering.";
+	$in_lib = $1+1;
+    }
+    $out_lib++;
+    my $var = "LibName$out_lib";
+    if ($lib =~ /\//) {
+	return "$var=$lib\n" if -r "$lib.lib";
+    }
+    for (".", $libdir, @LIBS) {
+	return "$var=$lib\n" if -r "$_/$lib.lib";
+    }
+    print STDERR "cannot find $lib\n";
+    $out_lib--;
+    return undef;
+}
+
+
+sub usage
+{
+    print STDERR "usage: $0 file.pro [outfile]\n";
+    exit(1);
+}
+
+
+($file, $out) = @ARGV;
+&usage if $#ARGV > 1;
+
+($dir = $file) =~ s|.*/||;
+$dir = "." if $dir eq "";
+
+open(FILE, $file) || die "$file: $!";
+while (<FILE>) {
+    if (/^\[(\S+)\]/) {
+	$section = $1;
+	if ($section eq "eeschema/libraries") {
+	    $in_lib = 1;
+	    $out_lib = 0;
+	}
+    }
+    if ($section eq "eeschema") {
+	$libdir = $2 if /^LibDir=(.*)\s*$/;
+    }
+    $s = &rewrite($_);
+    push(@f, $s) if defined $s;
+}
+close FILE;
+
+if (!defined $out) {
+    rename($file, "$file.bak");
+    $out= $file;
+}
+
+open(FILE, ">$out") || die "$out: $!";
+print FILE join("", @f) || die "$out: $!";
+close FILE || die "$out: $!";

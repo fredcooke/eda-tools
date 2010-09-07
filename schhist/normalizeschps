@@ -1,0 +1,60 @@
+#!/bin/sh
+#
+# normalizeschps - Normalize eeschema Postscript
+#
+# Written 2010 by Werner Almesberger
+# Copyright 2010 Werner Almesberger
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+
+
+usage()
+{
+    cat <<EOF 1>&2
+usage: $0 [options] [in.ps [out.ps]]
+
+  -w points  Postscript line width (default: use the original)
+EOF
+    exit 1
+}
+
+
+width=
+while true; do
+    case "$1" in
+    -w)	[ -z "$2" ] && usage
+	width="$2"
+	shift 2;;
+    -*)
+	usage;;
+    *)
+	break;;
+    esac
+done
+
+[ -z "$3" ] || usage
+in=${1:--}
+out=${2:-/dev/stdout}
+
+sed '
+  1c%!PS-Adobe-3.0\
+  currentdict /DidNormalize known not { \
+      '"`[ -z \"$width\" ] ||
+        echo \"/setlinewidth { $width 2 copy lt { exch } if pop \
+        setlinewidth } bind def \"`"' \
+      /rectfill { rectstroke } bind def \
+      /DidNormalize true def \
+  } if \
+  gsave
+  /%%DocumentMedia: A4.*/a-20 -10 translate
+  /%%DocumentMedia: A3.*/{s/A3/A4/;a-20 -10 translate 0.70 dup scale
+  }
+  /%%DocumentMedia: A2.*/{s/A2/A4/;a-18 -12 translate 0.49 dup scale
+  }
+  $agrestore' "$in" >"$out"
+
+#      /%%Orientation: Landscape/d' "$n"

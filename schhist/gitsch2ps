@@ -1,0 +1,81 @@
+#!/bin/sh
+#
+# gitsch2ps - Generate PS files for KiCad schematics in git
+#
+# Written 2010 by Werner Almesberger
+# Copyright 2010 Werner Almesberger
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+
+
+usage()
+{
+    cat <<EOF 1>&2
+usage: $0 [options] top-dir top-schem [commit] outdir
+
+  -S  sanitize the KiCad profile
+EOF
+    exit 1
+}
+
+
+sanitize=true
+while true; do
+    case "$1" in
+    -S) sanitize=`PATH="$PATH":\`dirname "$0"\` which sanitize-profile`
+	[ "$sanitize" = "${sanitize#/}" ] && sanitize=`pwd`/"$sanitize"
+	shift;;
+    -*)
+	usage;;
+    *)
+	break;;
+    esac
+done
+
+[ ! -z "$3" -a -z "$5" ] || usage
+dir="$1"
+schem="$2"
+sdir=`dirname "$schem"`
+if [ -z "$4" ]; then
+    commit=HEAD
+    outdir="$3"
+else
+    commit="$3"
+    outdir="$4"
+fi
+
+[ "$dir" != "${dir#/}" ] || dir=`pwd`/$dir
+
+[ "$commit" != HEAD -o -f "$dir/$schem" ] || usage
+[ -d "$dir/.git" ] || usage
+
+tmp="$dir/../_gitsch2ps"
+sch="$tmp/$sdir"
+
+rm -rf "$tmp"
+rm -rf "$outdir"
+
+git clone -s -n "$dir/.git" "$tmp" || exit
+( cd "$tmp" && git checkout -q "$commit"; ) || exit
+
+if [ ! -f "$tmp/$schem" ]; then
+    echo "$schem not found (checked out into $tmp)" 1>&2
+    exit 1
+fi
+
+(
+    cd "$sch" || exit
+    rm -f *.ps
+    $sanitize "$tmp/${schem%.sch}.pro" ||
+      exit
+    eeschema --plot "$tmp/$schem"
+) || exit
+
+mkdir -p "$outdir"
+mv "$sch"/*.ps "$outdir"
+
+rm -rf "$tmp"

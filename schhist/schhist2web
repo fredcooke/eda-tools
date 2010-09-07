@@ -1,0 +1,417 @@
+#!/bin/bash
+#
+# schhist2web - Web-browseable graphical revision history of schematics
+#
+# Written 2010 by Werner Almesberger
+# Copyright 2010 Werner Almesberger
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+
+
+OUTDIR=_out
+THUMB_OPTS="-w 3 -d 60 -c 0.5,0.5,0.5 -n 1,1,0"
+BG_COLOR="f0f0ff"
+FNAME_COLOR="#b0f0ff"
+SEP_COLOR="#000000"
+
+
+shrink()
+{
+    pnmscale -width 120 "$@" || exit
+}
+
+
+pngdiff()
+{
+    # pngdiff preproc outfile arg ...
+    pp="$1"
+    of="$2"
+    shift 2
+    if ! PATH=$PATH:`dirname $0`/ppmdiff ppmdiff "$@" "$out/_tmp"; then
+	rm -f "$out/_tmp"
+	return 1
+    fi
+    $pp "$out/_tmp" | pnmtopng >"$of"
+    rm "$out/_tmp"
+}
+
+
+symlink()
+{
+    local old=$1 new=$2
+    local src=`dirname "$new"`/$old
+
+    if [ -L "$src" ]; then
+	ln -sf "`readlink \"$src\"`" "$new"
+    else
+	ln -sf "$old" "$new"
+    fi
+}
+
+
+commit_entry()
+{
+    # usage: commit_entry <base-dir> <commit>
+    # note: the repository's base in $dir must be provided by the caller
+
+    local dir=$1 next=$2
+
+    cat <<EOF
+<TABLE bgcolor="$SEP_COLOR" cellspacing=0 width="100%"><TR><TD></TABLE>
+EOF
+    echo "<PRE>"
+    ( cd "$dir" && git show \
+        --pretty=format:"%aN <%aE>%n    %ad, %ar%n%n    %s" \
+	--quiet $next; ) |
+      sed 's/&/&amp;/g;s/</\&lt;/g;s/>/\&gt;/g' |
+      if [ -z "$SCHHIST_COMMIT_TEMPLATE" ]; then
+	cat
+      else
+	url=`echo "$SCHHIST_COMMIT_TEMPLATE" | sed "s/{}/$next/g"`
+	sed "1s|^|<A href=\"$url\"><B>\&gt;\&gt;\&gt;</B></a> |"
+      fi
+    echo "</PRE>"
+}
+
+
+wrapped_png()
+{
+    local dir=$1 commit=$2 file=$3
+
+    mkdir -p "$dir/$commit/html"
+    echo "<A href=\"$commit/html/$file.html\"><IMG src=\"$commit/thumb/$file.png\"></A>"
+    cat <<EOF >"$dir/$commit/html/$file.html"
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<TITLE>$file</TITLE>
+<BODY>
+<A href="../pdf/$file.pdf"><IMG src="../diff/$file.png"></A>
+</BODY>
+EOF
+}
+
+
+usage()
+{
+    cat <<EOF 2>&1
+usage: $0 [-c cache-dir] [-n] [-S] [top-dir] [top-schem] [out-dir]
+
+  top-dir       top-level directory of the git archive (default: locate it)
+  top-schem     root sheet of the schematics (default: locate it in top-dir)
+  out-dir       output directory (default: $OUTDIR)
+  -c cache-dir  cache directory (default: same as out-dir)
+  -n            don't use previous cache content (rebuild the cache)
+  -S            sanitize KiCad profile
+EOF
+    exit 1
+}
+
+
+# --- Parse command-line options ----------------------------------------------
+
+
+no_cache=false
+sanitize=
+
+while true; do
+    case "$1" in
+    -n)	no_cache=true
+	shift;;
+    -c)	[ -z "$1" ] && usage
+	cache="$1"
+	shift 2;;
+    -S)	sanitize=-S
+	shift;;
+    -*) usage;;
+    *)	break;;
+    esac
+done
+
+
+# --- Interpret the command-line arguments ------------------------------------
+
+
+if [ ! -z "$1" -a -d "$1/.git" ]; then
+    dir="$1"
+    shift
+else
+    dir=.
+    while [ ! -d $dir/.git ]; do
+	if [ $dir -ef $dir/.. ]; then
+	    echo "no .git/ directory found in hierarchy" 1>&2
+	    exit 1
+	fi
+	dir=$dir/..
+    done
+    echo "found top-dir: $dir" 1>&2
+fi
+
+if [ ! -z "$1" -a -f "$dir/$1" -a \
+  -f "$dir/${1%.sch}.pro" ]; then
+    sch="$1"
+    shift
+else
+    for n in "$dir"/*.sch; do
+	[ -f "${n%.sch}.pro" ] || continue
+	if [ ! -z "$sch" ]; then
+	    echo "multiple choices for top-level .sch file" 1>&2
+	    exit 1
+	fi
+	sch="$n"
+    done
+    if [ -z "$sch" -o "$sch" = "$dir/*.sch" ]; then
+	echo "no candidate for top-level .sch file found" 1>&2
+	exit 1
+    fi
+    echo "found root sheet: $sch" 1>&2
+fi
+
+if [ ! -z "$1" ] && [ ! -e "$1" ] || [ -d "$1" -a ! -d "$1"/.git ]; then
+    out="$1"
+    shift
+else
+    out=$OUTDIR
+fi
+[ -z "$cache" ] && cache="$out"
+
+[ -z "$1" ] || usage
+
+
+# --- Set up some variables and the directories for cache and output ----------
+
+
+PATH=`dirname "$0"`:"$PATH"
+first=`gitenealogy "$dir" "$sch" | sed '$s/ .*//p;d'`
+schname=`gitenealogy "$dir" "$sch" | sed '$s/^.* //p;d'`
+
+rm -rf "$out/*/"{diff,thumb,html,pdf} "$out/names"
+$no_cache && rm -rf "$cache"
+mkdir -p "$out/names"
+mkdir -p "$cache"
+
+ppmmake '#e0e0e0' 5 30 | pnmtopng >"$out"/unchanged.png
+
+
+# --- Generate/update the cache -----------------------------------------------
+
+
+head=
+for n in $first `cd "$dir" && git rev-list --reverse $first..HEAD`; do
+    ( cd "$dir" && git show  --pretty=format:'' --name-only $n; ) |
+      egrep -q '\.sch$|\.pro$|\.lib$' || continue
+    echo Processing $n
+    new=`gitenealogy "$dir" "$sch" | sed "/^$n /s///p;d"`
+    if [ ! -z "$new" ]; then
+	echo Name change $schname to $new 1>&2
+	schname="$new"
+    fi
+    tmp=`pwd`/_schhist2web
+    trap "rm -rf \"$cache/$n/ps\" \"$cache/$n/ppm0\" \"$cache/$n/ppm1\" \
+      \"$cache/$n/ppm2\" \"$tmp\"" 0
+    if [ ! -d "$cache/$n/ppm2" ]; then
+	rm -rf "$cache/$n/"{ps,ppm0,ppm1,ppm2}
+	mkdir -p "$cache/$n/"{ps,ppm0,ppm1,ppm2}
+	#
+	# potential optimization here: remember Postscript files from previous
+	# run (or their md5sum) and check if they have changed. If not, skip
+	# the ghostscript run and just put a symlink, replacing the less
+	# efficient optimization below.
+	#
+	gitsch2ps $sanitize  "$dir" "$schname" $n "$tmp" || exit
+	for m in "$tmp"/*.ps; do
+	    # Postscript, for making PDFs later
+	    ps="$cache/$n/ps/`basename "$m"`"
+	    normalizeschps "$m" "$ps" || exit
+
+	    # Unadorned pixmap, for comparison
+	    ppm="$cache/$n/ppm0/`basename "$m" .ps`.ppm"
+	    schps2ppm -n "$ps" "$ppm" || exit
+
+	    # Pixmap with thin lines, for the detail views
+	    ppm="$cache/$n/ppm1/`basename "$m" .ps`.ppm"
+	    normalizeschps -w 120 "$m" | schps2ppm - "$ppm" || exit
+
+	    # Pixmap with thick lines, for the thumbnails
+	    ppm="$cache/$n/ppm2/`basename "$m" .ps`.ppm"
+	    normalizeschps -w 500 "$m" | schps2ppm - "$ppm" || exit
+	done
+	rm -rf "$tmp"
+    fi
+    for m in "$cache/$n/ppm0/"*; do
+	[ "$m" = "$cache/$n/ppm0/*" ] && break
+	if [ ! -z "$head" ]; then
+	    prev="$cache/$head/ppm0/${m##*/}"
+	    if [ -r "$prev" ] && cmp -s "$prev" "$m"; then
+		for d in ppm0 ppm1 ppm2; do
+		    symlink "../../$head/$d/${m##*/}" "$cache/$n/$d/${m##*/}"
+		done
+		m_ps=${m%.ppm}.ps
+		symlink "../../$head/ps/${m_ps##*/}" "$cache/$n/ps/${m_ps##*/}"
+	    fi
+	fi
+	touch "$out/names/`basename \"$m\" .ppm`"
+    done
+    trap 0
+    head=$n
+done
+
+if [ -z "$head" ]; then
+    echo "no usable head found" 2>&1
+    exit 1
+fi
+
+
+# --- Title of the Web page and table header ----------------------------------
+
+
+index="$out/index.html"
+all=
+{
+    cat <<EOF
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+EOF
+    if [ ! -z "$SCHHIST_TITLE" ]; then
+	echo "<TITLE>$SCHHIST_TITLE</TITLE>"
+    fi
+    echo "<BODY>"
+    if [ ! -z "$SCHHIST_TITLE" ]; then
+	echo "<H1>"
+	[ -z "$SCHHIST_HOME_URL" ] || echo "<A href=\"$SCHHIST_HOME_URL\">"
+	echo "$SCHHIST_TITLE"
+	[ -z "$SCHHIST_HOME_URL" ] || echo "</A>"
+	echo "</H1>"
+    fi
+    cat <<EOF
+<TABLE bgcolor="$BG_COLOR" callpadding=1>
+<TR bgcolor="$FNAME_COLOR">
+EOF
+    while read m; do
+	ps="$cache/$head/ps/$m.ps"
+	if [ -r "$ps" ]; then
+	    #
+	    # Note: we read from variable ps_$head but we write to constant
+	    # pdf_head. We can't use pdf_$head here, because that may just be a
+	    # commit with a change and we thus generate a delta PDF below.
+	    #
+	    mkdir -p "$out/pdf_head"
+	    schps2pdf -o "$out/pdf_head/$m.pdf" "$ps" || exit
+	    all="$all \"$ps\""
+	    echo "<TD><A href=\"pdf_head/$m.pdf\"><B>$m</B></A>"
+	else
+	    echo "<TD><B>$m</B>"
+	fi
+    done < <(ls -1 "$out/names")
+    proj=`basename "$sch" .sch`
+    eval schps2pdf -t \""$proj-"\" -o \""$out/pdf_$proj.pdf"\" $all
+    echo "<TD><A href=\"pdf_$proj.pdf\">All sheets</A>"
+} >"$index"
+
+
+# --- Diff all the revisions, newest to oldest --------------------------------
+
+
+next="$head"
+for n in `cd "$dir" && git rev-list $first..HEAD~1` $first; do
+    [ -d "$cache/$n/ppm0" ] || continue
+    empty=true
+    s="<TR>"
+    mkdir -p "$out/$next/"{diff,thumb,html,pdf}
+    while read m; do
+	a0="$cache/$n/ppm0/$m.ppm"
+	a1="$cache/$n/ppm1/$m.ppm"
+	a2="$cache/$n/ppm2/$m.ppm"
+	aps="$cache/$n/ps/$m.ps"
+
+	b0="$cache/$next/ppm0/$m.ppm"
+	b1="$cache/$next/ppm1/$m.ppm"
+	b2="$cache/$next/ppm2/$m.ppm"
+	bps="$cache/$next/ps/$m.ps"
+
+	diff="$out/$next/diff/$m.png"
+	thumb="$out/$next/thumb/$m.png"
+	pdf="$out/$next/pdf/$m.pdf"
+
+	if [ -f "$a0" -a -f "$b0" ]; then
+	    s="$s<TD align=\"center\" valign=\"middle\">"
+	    if ! pngdiff cat "$diff" "$a1" "$b1" "$a0" "$b0"; then
+		s="$s<IMG src=\"unchanged.png\""
+		continue
+	    fi
+	    pngdiff shrink "$thumb" -f $THUMB_OPTS "$a2" "$b2" "$a0" "$b0" ||
+	      exit
+	    schps2pdf -T BEFORE -T AFTER -o "$pdf" "$aps" "$bps" || exit
+	elif [ -f "$a0" ]; then
+	    s="$s<TD>"
+	    pngdiff cat "$diff" -f -c 1,0,0 "$a1" "$a1" || exit
+	    pngdiff shrink "$thumb" -f $THUMB_OPTS -c 1,0,0 "$a2" "$a2" ||
+	      exit
+	    schps2pdf -T DELETED -o "$pdf" "$aps" || exit
+	elif [ -f "$b0" ]; then
+	    s="$s<TD>"
+	    pngdiff cat "$diff" -f -c 0,1,0 "$b1" "$b1" || exit
+	    pngdiff shrink "$thumb" -f $THUMB_OPTS -c 0,1,0 "$b2" "$b2" ||
+	      exit
+	    schps2pdf -T NEW -o "$pdf" "$bps" || exit
+	else
+	    s="$s<TD>"
+	    continue
+	fi
+	echo "$s"
+	s=
+        wrapped_png "$out" "$next" "$m"
+	empty=false
+    done < <(ls -1 "$out/names")
+    if ! $empty; then
+ 	echo "$s<TD valign=\"middle\">"
+	commit_entry "$dir" $next
+    fi
+    next=$n
+done >>"$index"
+
+
+# --- Add creation entries for all files in the first commit ------------------
+
+
+if [ -d "$cache/$next/ppm0" ]; then	# could this ever be false ?
+    empty=true
+    echo "<TR>"
+    mkdir -p "$out/$next/"{diff,thumb,html,pdf}
+    while read m; do
+	p1="$cache/$next/ppm1/$m.ppm"
+	p2="$cache/$next/ppm2/$m.ppm"
+	ps="$cache/$next/ps/$m.ps"
+	diff="$out/$next/diff/$m.png"
+	thumb="$out/$next/thumb/$m.png"
+	pdf="$out/$next/pdf/$m.pdf"
+
+	echo "<TD>"
+	[ -f "$p1" ] || continue
+	pngdiff cat "$diff" -f -c 0,1,0 "$p1" "$p1" || exit
+	pngdiff shrink "$thumb" -f $THUMB_OPTS -c 0,1,0 "$p2" "$p2" ||
+	  exit
+	schps2pdf -T NEW -o "$pdf" "$ps" || exit
+	wrapped_png "$out" "$next" "$m"
+	empty=false
+    done < <(ls -1 "$out/names")
+    if ! $empty; then
+ 	echo "<TD valign=\"middle\">"
+	commit_entry "$dir" $next
+    fi
+fi >>"$index"
+
+
+# --- Finish ------------------------------------------------------------------
+
+
+cat <<EOF >>"$index"
+</TABLE>
+<HR>
+`date -u '+%F %X'` UTC
+</BODY>
+</HTML>
+EOF
