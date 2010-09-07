@@ -7,24 +7,26 @@ RSYNC = eval rsync -a --progress "--exclude "$(CACHE_DIRS)/
 .PHONY:		all ben-wpan-schhist ben-wpan-schhist-upload
 .PHONY:		xue-schhist xue-schhist-upload
 .PHONY:		cntr-schhist cntr-schhist-upload
+.PHONY:		atusd-schhist atusd-schhist-upload
 
 # All the targets are for demo purposes pnly !
 
 all:
 		@echo "possible targets:" 2>&1
-		@echo "  ben-wpan-schhist ben-wpan-schhist-upload" 2>&1
+		@echo "  atusb-schhist atusb-schhist-upload" 2>&1
 		@echo "  xue-schhist xue-schhist-upload" 2>&1
 		@echo "  cntr-schhist cntr-schhist-upload" 2>&1
+		@echo "  atusd-schhist atusd-schhist-upload" 2>&1
 		@exit 1
 
-ben-wpan-schhist:
+atusb-schhist:
 	SCHHIST_TITLE=ben-wpan/atrf \
 	  SCHHIST_HOME_URL=http://projects.qi-hardware.com/index.php/p/ben-wpan/ \
 	  SCHHIST_COMMIT_TEMPLATE='http://projects.qi-hardware.com/index.php/p/ben-wpan/source/commit/{}/' \
-	  ./schhist2web atrf/wpan-atrf.sch
+	  ./schhist2web ../../ben-wpan atrf/wpan-atrf.sch _atusb
 
-ben-wpan-schhist-upload:
-	 $(RSYNC) _out/* $(DEST)/demo/
+atusb-schhist-upload:
+	 $(RSYNC) _atusb/* $(DEST)/demo/
 
 xue-schhist:
 	SCHHIST_TITLE=Xue \
@@ -39,7 +41,16 @@ cntr-schhist:
 	SCHHIST_TITLE=ben-wpan/cntr \
 	  SCHHIST_HOME_URL=http://projects.qi-hardware.com/index.php/p/ben-wpan/ \
 	  SCHHIST_COMMIT_TEMPLATE='http://projects.qi-hardware.com/index.php/p/ben-wpan/source/commit/{}/' \
-	  ./schhist2web cntr/cntr.sch _cntr
+	  ./schhist2web ../../ben-wpan cntr/cntr.sch _cntr
 
 cntr-schhist-upload:
 	$(RSYNC) _cntr/* $(DEST)/demo3/
+
+atusd-schhist:
+	SCHHIST_TITLE=ben-wpan/atusd 
+	  SCHHIST_HOME_URL=http://projects.qi-hardware.com/index.php/p/ben-wpan/ \
+	  SCHHIST_COMMIT_TEMPLATE='http://projects.qi-hardware.com/index.php/p/ben-wpan/source/commit/{}/' \
+	  ./schhist2web ../../ben-wpan atusd/atusd.sch _atusd
+
+atusd-schhist-upload:
+	$(RSYNC) _atusd/* $(DEST)/demo4/
