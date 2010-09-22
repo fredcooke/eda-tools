@@ -98,12 +98,13 @@ EOF
 usage()
 {
     cat <<EOF 2>&1
-usage: $0 [-c cache-dir] [-n] [-S] [top-dir] [top-schem] [out-dir]
+usage: $0 [-c cache-dir] [-f] [-n] [-S] [top-dir] [top-schem] [out-dir]
 
   top-dir       top-level directory of the git archive (default: locate it)
   top-schem     root sheet of the schematics (default: locate it in top-dir)
   out-dir       output directory (default: $OUTDIR)
   -c cache-dir  cache directory (default: same as out-dir)
+  -f            identify sheets by their file name, not the sheet name
   -n            don't use previous cache content (rebuild the cache)
   -S            sanitize KiCad profile
 EOF
@@ -116,6 +117,7 @@ EOF
 
 no_cache=false
 sanitize=
+use_sch_name=false
 
 while true; do
     case "$1" in
@@ -124,6 +126,8 @@ while true; do
     -c)	[ -z "$1" ] && usage
 	cache="$1"
 	shift 2;;
+    -f)	use_sch_name=true
+	shift;;
     -S)	sanitize=-S
 	shift;;
     -*) usage;;
@@ -221,25 +225,50 @@ for n in $first `cd "$dir" && git rev-list --reverse $first..HEAD`; do
 	# the ghostscript run and just put a symlink, replacing the less
 	# efficient optimization below.
 	#
-	gitsch2ps $sanitize  "$dir" "$schname" $n "$tmp" || exit
+	tmp2=`gitsch2ps -k $sanitize  "$dir" "$schname" $n "$tmp"` || exit
 	for m in "$tmp"/*.ps; do
+	    # call sub-sheets by their own name, without prepending the
+	    # top-level sheet's name
+	    name=`basename "$m" .ps`
+	    name=${name#`basename "$schname" .sch`-}
+
+	    #
+	    # short-cut for $schname: since it's derived from the present $sch,
+	    # we can just update it without further ado.
+	    #
+	    if [ "$name" = "`basename \"$schname\" .sch`" ]; then
+		name=`basename "$sch" .sch`
+	    elif $use_sch_name &&
+	      path=`subschname2file "$tmp2/$schname" "$name"`; then
+		name=`basename "$path" .sch`
+		#
+		# if the file is easily located, also track any future name
+		# changes
+		#
+		path=`dirname "$schname"`/$path
+		if [ -f "$tmp2/$path" ]; then
+		    name=`gitwhoareyounow "$tmp2" "$path"`
+		    name=`basename "$name" .sch`
+		fi
+	    fi
+
 	    # Postscript, for making PDFs later
-	    ps="$cache/$n/ps/`basename "$m"`"
+	    ps="$cache/$n/ps/$name.ps"
 	    normalizeschps "$m" "$ps" || exit
 
 	    # Unadorned pixmap, for comparison
-	    ppm="$cache/$n/ppm0/`basename "$m" .ps`.ppm"
+	    ppm="$cache/$n/ppm0/$name.ppm"
 	    schps2ppm -n "$ps" "$ppm" || exit
 
 	    # Pixmap with thin lines, for the detail views
-	    ppm="$cache/$n/ppm1/`basename "$m" .ps`.ppm"
+	    ppm="$cache/$n/ppm1/$name.ppm"
 	    normalizeschps -w 120 "$m" | schps2ppm - "$ppm" || exit
 
 	    # Pixmap with thick lines, for the thumbnails
-	    ppm="$cache/$n/ppm2/`basename "$m" .ps`.ppm"
+	    ppm="$cache/$n/ppm2/$name.ppm"
 	    normalizeschps -w 500 "$m" | schps2ppm - "$ppm" || exit
 	done
-	rm -rf "$tmp"
+	rm -rf "$tmp" "$tmp2"
     fi
     for m in "$cache/$n/ppm0/"*; do
 	[ "$m" = "$cache/$n/ppm0/*" ] && break
