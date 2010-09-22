@@ -23,6 +23,7 @@ atusb-schhist:
 	SCHHIST_TITLE=ben-wpan/atrf \
 	  SCHHIST_HOME_URL=http://projects.qi-hardware.com/index.php/p/ben-wpan/ \
 	  SCHHIST_COMMIT_TEMPLATE='http://projects.qi-hardware.com/index.php/p/ben-wpan/source/commit/{}/' \
+	  SCHHIST_ORDER=wpan-atrf:USB:RF \
 	  ./schhist2web ../../ben-wpan atrf/wpan-atrf.sch _atusb
 
 atusb-schhist-upload:

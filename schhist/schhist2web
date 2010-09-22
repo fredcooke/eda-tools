@@ -95,6 +95,18 @@ EOF
 }
 
 
+ordered_names()
+{
+    ls -1 "$out/names" | (
+	order=:$SCHHIST_ORDER:
+	while read n; do
+	    echo "${order%%:$n:*}" | tr -cd : | wc -c | tr '\n' ' '
+            echo "$n"
+	done; ) |
+      sort -n -s | sed 's/^[^ ]* //'
+}
+
+
 usage()
 {
     cat <<EOF 2>&1
@@ -334,7 +346,7 @@ EOF
 	else
 	    echo "<TD><B>$m</B>"
 	fi
-    done < <(ls -1 "$out/names")
+    done < <(ordered_names)
     proj=`basename "$sch" .sch`
     eval schps2pdf -t \""$proj-"\" -o \""$out/pdf_$proj.pdf"\" $all
     echo "<TD><A href=\"pdf_$proj.pdf\">All sheets</A>"
@@ -394,7 +406,7 @@ for n in `cd "$dir" && git rev-list $first..HEAD~1` $first; do
 	s=
         wrapped_png "$out" "$next" "$m"
 	empty=false
-    done < <(ls -1 "$out/names")
+    done < <(ordered_names)
     if ! $empty; then
  	echo "$s<TD valign=\"middle\">"
 	commit_entry "$dir" $next
@@ -426,7 +438,7 @@ if [ -d "$cache/$next/ppm0" ]; then	# could this ever be false ?
 	schps2pdf -T NEW -o "$pdf" "$ps" || exit
 	wrapped_png "$out" "$next" "$m"
 	empty=false
-    done < <(ls -1 "$out/names")
+    done < <(ordered_names)
     if ! $empty; then
  	echo "<TD valign=\"middle\">"
 	commit_entry "$dir" $next
