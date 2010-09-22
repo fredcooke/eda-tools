@@ -17,6 +17,7 @@ usage()
     cat <<EOF 1>&2
 usage: $0 [options] top-dir top-schem [commit] outdir
 
+  -k  keep the temporary directory and print its name
   -S  sanitize the KiCad profile
 EOF
     exit 1
@@ -24,8 +25,11 @@ EOF
 
 
 sanitize=true
+keep=false
 while true; do
     case "$1" in
+    -k) keep=true
+	shift;;
     -S) sanitize=`PATH="$PATH":\`dirname "$0"\` which sanitize-profile`
 	[ "$sanitize" = "${sanitize#/}" ] && sanitize=`pwd`/"$sanitize"
 	shift;;
@@ -59,7 +63,7 @@ sch="$tmp/$sdir"
 rm -rf "$tmp"
 rm -rf "$outdir"
 
-git clone -s -n "$dir/.git" "$tmp" || exit
+git clone -q -s -n "$dir/.git" "$tmp" || exit
 ( cd "$tmp" && git checkout -q "$commit"; ) || exit
 
 if [ ! -f "$tmp/$schem" ]; then
@@ -78,4 +82,8 @@ fi
 mkdir -p "$outdir"
 mv "$sch"/*.ps "$outdir"
 
-rm -rf "$tmp"
+if $keep; then
+    echo "$tmp"
+else
+    rm -rf "$tmp"
+fi
