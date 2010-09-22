@@ -1,0 +1,46 @@
+gitwhoareyounow
+---------------
+
+gitwhoareyounow is used to find a single identity for files that have been
+renamed in the history of a project.
+
+E.g., if a file foo.c is created in revision 1 (assuming successive revisions
+numbered 1, 2, etc.) and renamed to bar.c in revision 2, gitwhoareyounow
+would then return the name bar.c for this file in any revision we consider.
+
+gitwhoareyounow has to be given a repository in which the historical commit
+has been checked out, and the name the file had in that commit.
+
+Example:
+
+$ git init
+$ date >foo.c
+# git add foo.c
+# git commit -m "foo.c, rev 1"
+$ git mv foo.c bar.c
+$ git commit -m "foo.c renamed to bar.c, rev 2"
+$ git checkout HEAD~1
+$ ls
+foo.c
+$ gitwhoareyounow . foo.c
+bar.c
+
+
+Multiple files may use the same identity
+- - - - - - - - - - - - - - - - - - - - 
+
+E.g., if a file foo.c is created in revision 1, deleted in revision 3, and
+then a new file named foo.c is created in revision 4, gitwhoareyounow would
+call both of them foo.c
+
+
+Multiple files sharing the same identity can conflict
+- - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+E.g., taking the first example with foo.c renamed to bar.c in revision 3, if
+a file bar.c existed in revision 1 but was deleted in revision 2,
+gitwhoareyounow running on revision 1 would identify both the foo.c and the
+bar.c as bar.c
+
+gitwhoareyounow does not try to resolve such conflicts. This is already
+complex enough as it is :-)

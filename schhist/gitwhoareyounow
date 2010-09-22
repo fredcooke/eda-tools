@@ -1,0 +1,49 @@
+#!/bin/sh
+#
+# gitwhoareyounow - Trace the future of a file in git across renames
+#
+# Written 2010 by Werner Almesberger
+# Copyright 2010 Werner Almesberger
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+
+
+usage()
+{
+    cat <<EOF 2>&1
+usage: $0 repo-dir path
+
+  The file to trace must be at repo-dir/path
+  The repo must be on a branch in the past of the current master.
+EOF
+    exit 1
+}
+
+
+if [ -z "$2" -o ! -z "$3" ]; then
+    usage
+fi
+
+if [ ! -d "$1" -o ! -d "$1/.git" ]; then
+    echo "no git repository at $1" 1>&2
+    exit 1
+fi
+if [ ! -f "$1/$2" ]; then
+    echo "cannot find $2" 2>&1
+    exit 1
+fi
+
+cd "$1" || exit
+prev=`git rev-parse @{0}`
+name=$2
+for n in `git rev-list --reverse ..master`; do
+    new=`git diff-tree --name-status -r -M $prev $n |
+	awk -F '\t' '$1~/^R/ && $2=="'"$name"'" { print $3 }'`
+    [ -z "$new" ] || name=$new
+    prev=$n
+done
+echo "$name"
