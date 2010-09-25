@@ -9,23 +9,28 @@ RSYNC = eval rsync -a --progress "--exclude "$(CACHE_DIRS)/
 .PHONY:		xue-schhist xue-schhist-upload
 .PHONY:		cntr-schhist cntr-schhist-upload
 .PHONY:		atusd-schhist atusd-schhist-upload
+.PHONY:		sie-ceimtun-schhist sie-ceimtun-schhist-upload
 
 # All the targets are for demo purposes pnly !
 
 all:
-		@echo "possible targets:" 2>&1
-		@echo "  atusb-schhist atusb-schhist-upload" 2>&1
-		@echo "  xue-schhist xue-schhist-upload" 2>&1
-		@echo "  cntr-schhist cntr-schhist-upload" 2>&1
-		@echo "  atusd-schhist atusd-schhist-upload" 2>&1
-		@exit 1
+	@echo "possible targets:" 2>&1
+	@echo "  update upload-index" 2>&1
+	@echo "  atusb-schhist atusb-schhist-upload" 2>&1
+	@echo "  xue-schhist xue-schhist-upload" 2>&1
+	@echo "  cntr-schhist cntr-schhist-upload" 2>&1
+	@echo "  atusd-schhist atusd-schhist-upload" 2>&1
+	@echo "  sie-ceimtun-schhist sie-ceimtun-schhist-upload" 2>&1
+	@exit 1
 
 update:
 	cd /home/nn/xue && git pull
+	cd /home/nn/sie-ceimtun && git pull
 	$(MAKE) atusb-schhist atusb-schhist-upload
 	$(MAKE) xue-schhist xue-schhist-upload
 	$(MAKE) cntr-schhist cntr-schhist-upload
 	$(MAKE) atusd-schhist atusd-schhist-upload
+	$(MAKE) sie-ceimtun-schhist sie-ceimtun-schhist-upload
 
 upload-index:
 	scp demo-index.html $(DEST)/index.html
@@ -59,10 +64,20 @@ cntr-schhist-upload:
 	$(RSYNC) _cntr/* $(DEST)/cntr/
 
 atusd-schhist:
-	SCHHIST_TITLE=ben-wpan/atusd 
+	SCHHIST_TITLE=ben-wpan/atusd \
 	  SCHHIST_HOME_URL=http://projects.qi-hardware.com/index.php/p/ben-wpan/ \
 	  SCHHIST_COMMIT_TEMPLATE='http://projects.qi-hardware.com/index.php/p/ben-wpan/source/commit/{}/' \
 	  ./schhist2web ../../ben-wpan atusd/atusd.sch _atusd
 
 atusd-schhist-upload:
 	$(RSYNC) _atusd/* $(DEST)/atusd/
+
+sie-ceimtun-schhist:
+	SCHHIST_TITLE="SIE CEIMTUN" \
+	  SCHHIST_HOME_URL=http://projects.qi-hardware.com/index.php/p/sie-ceimtun/ \
+	  SCHHIST_COMMIT_TEMPLATE='http://projects.qi-hardware.com/index.php/p/sie-ceimtun/source/commit/{}/' \
+	  ./schhist2web -f ../../sie-ceimtun KiCad/SIE_power_module.sch \
+	    _sie_ceimtun
+
+sie-ceimtun-schhist-upload:
+	$(RSYNC) _sie_ceimtun/* $(DEST)/sie-ceimtun/
