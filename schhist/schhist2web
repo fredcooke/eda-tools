@@ -135,8 +135,8 @@ while true; do
     case "$1" in
     -n)	no_cache=true
 	shift;;
-    -c)	[ -z "$1" ] && usage
-	cache="$1"
+    -c)	[ -z "$2" ] && usage
+	cache="$2"
 	shift 2;;
     -f)	use_sch_name=true
 	shift;;
