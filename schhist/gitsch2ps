@@ -18,20 +18,25 @@ usage()
 usage: $0 [options] top-dir top-schem [commit] outdir
 
   -k  keep the temporary directory and print its name
-  -S  sanitize the KiCad profile
+  -S  sanitize the KiCad profile and the top-level sheet
 EOF
     exit 1
 }
 
 
-sanitize=true
+sanitize_profile=true
+sanitize_schem=true
 keep=false
 while true; do
     case "$1" in
     -k) keep=true
 	shift;;
-    -S) sanitize=`PATH="$PATH":\`dirname "$0"\` which sanitize-profile`
-	[ "$sanitize" = "${sanitize#/}" ] && sanitize=`pwd`/"$sanitize"
+    -S) sanitize_profile=`PATH="$PATH":\`dirname "$0"\` which sanitize-profile`
+	[ "$sanitize_profile" = "${sanitize_profile#/}" ] &&
+	    sanitize_profile=`pwd`/"$sanitize_profile"
+	sanitize_schem=`PATH="$PATH":\`dirname "$0"\` which sanitize-schem`
+	[ "$sanitize_schem" = "${sanitize_schem#/}" ] &&
+	    sanitize_schem=`pwd`/"$sanitize_schem"
 	shift;;
     -*)
 	usage;;
@@ -74,8 +79,8 @@ fi
 (
     cd "$sch" || exit
     rm -f *.ps
-    $sanitize "$tmp/${schem%.sch}.pro" ||
-      exit
+    $sanitize_profile "$tmp/${schem%.sch}.pro" || exit
+    $sanitize_schem "$tmp/$schem" || exit
     eeschema --plot "$tmp/$schem"
 ) || exit
 

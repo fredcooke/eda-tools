@@ -1,0 +1,61 @@
+#!/usr/bin/perl
+#
+# sanitize-schem - Remove items from KiCad schematics that may cause an upset
+#
+# Written 2010 by Werner Almesberger
+# Copyright 2010 Werner Almesberger
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+
+
+sub usage
+{
+    print STDERR "usage: $0 file.sch [outfile]\n";
+    exit(1);
+}
+
+
+($file, $out) = @ARGV;
+&usage if $#ARGV > 1;
+
+($dir = $file) =~ s|.*/||;
+$dir = "." if $dir eq "";
+
+open(FILE, $file) || die "$file: $!";
+while (<FILE>) {
+    if (/^\$Sheet/) {
+	$s = $_;
+	$discard = 1;
+	next;
+    }
+    if (/^\$EndSheet/) {
+	push(@f, $s.$_) unless $discard;
+	undef $s;
+	next;
+    }
+    if (!defined $s) {
+	push(@f, $_);
+	next;
+    }
+    $s .= $_;
+    next unless /^F1 "([^"]*)"/;
+    if (-r "$1" || -r "$dir/$1") {
+	$discard = 0;
+	next;
+    }
+    print STDERR "removing $1\n";
+}
+close FILE;
+
+if (!defined $out) {
+    rename($file, "$file.bak");
+    $out= $file;
+}
+
+open(FILE, ">$out") || die "$out: $!";
+print FILE join("", @f) || die "$out: $!";
+close FILE || die "$out: $!";

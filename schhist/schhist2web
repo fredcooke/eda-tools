@@ -118,7 +118,7 @@ usage: $0 [-c cache-dir] [-f] [-n] [-S] [top-dir] [top-schem] [out-dir]
   -c cache-dir  cache directory (default: same as out-dir)
   -f            identify sheets by their file name, not the sheet name
   -n            don't use previous cache content (rebuild the cache)
-  -S            sanitize KiCad profile
+  -S            sanitize KiCad profile and top-level sheet
 EOF
     exit 1
 }
