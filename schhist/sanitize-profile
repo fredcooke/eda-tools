@@ -65,7 +65,7 @@ while (<FILE>) {
 	}
     }
     if ($section eq "eeschema") {
-	$libdir = $2 if /^LibDir=(.*)\s*$/;
+	$libdir = $1 if /^LibDir=(.*)\s*$/;
     }
     $s = &rewrite($_);
     push(@f, $s) if defined $s;
