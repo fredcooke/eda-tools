@@ -102,6 +102,7 @@ board-qi-avt2:
 	SCHHIST_TITLE="AVT2" \
 	  SCHHIST_HOME_URL=http://projects.qi-hardware.com/index.php/p/board-qi-avt2/ \
 	  SCHHIST_COMMIT_TEMPLATE='http://projects.qi-hardware.com/index.php/p/board-qi-avt2/source/commit/{}/' \
+	  SCHHIST_ADDLIBS=device \
 	  ./schhist2web -S ../../board-qi-avt2 \
 	    main/Qi_AVT2.sch _avt2
 

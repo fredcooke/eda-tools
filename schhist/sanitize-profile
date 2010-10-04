@@ -22,6 +22,7 @@ sub rewrite
     return $s if $section ne "eeschema/libraries";
     return $s unless /^LibName(\d+)=(.*)\s*$/;
     my $lib = $2;
+    delete $add{$lib};
     if ($1 == $in_lib) {
 	$in_lib++;
     } else {
@@ -42,12 +43,27 @@ sub rewrite
 }
 
 
+sub complement
+{
+    for (sort keys %add) {
+	print STDERR "adding $_\n";
+	$out_lib++;
+	push(@f, "LibName$out_lib=$_\n");
+	delete $add{$_};
+    }
+}
+
+
 sub usage
 {
     print STDERR "usage: $0 file.pro [outfile]\n";
     exit(1);
 }
 
+
+for (split(",", $ENV{"SCHHIST_ADDLIBS"})) {
+    $add{$_} = 1 if $_ ne "";
+}
 
 ($file, $out) = @ARGV;
 &usage if $#ARGV > 1;
@@ -58,11 +74,13 @@ $dir = "." if $dir eq "";
 open(FILE, $file) || die "$file: $!";
 while (<FILE>) {
     if (/^\[(\S+)\]/) {
-	$section = $1;
-	if ($section eq "eeschema/libraries") {
+	if ($1 eq "eeschema/libraries") {
 	    $in_lib = 1;
 	    $out_lib = 0;
+	} else {
+	    &complement if $section eq "eeschema/libraries";
 	}
+	$section = $1;
     }
     if ($section eq "eeschema") {
 	$libdir = $1 if /^LibDir=(.*)\s*$/;
@@ -71,6 +89,7 @@ while (<FILE>) {
     push(@f, $s) if defined $s;
 }
 close FILE;
+&complement;
 
 if (!defined $out) {
     rename($file, "$file.bak");
