@@ -25,7 +25,7 @@ sub rewrite
     if ($1 == $in_lib) {
 	$in_lib++;
     } else {
-	print STDERR "LibName$1 when expecting $next_lib. Renumbering.";
+	print STDERR "LibName$1 when expecting LibName$in_lib. Renumbering.\n";
 	$in_lib = $1+1;
     }
     $out_lib++;
