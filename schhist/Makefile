@@ -11,6 +11,7 @@ RSYNC = eval rsync -a --progress "--exclude "$(CACHE_DIRS)/
 .PHONY:		atusd-schhist atusd-schhist-upload
 .PHONY:		sie-ceimtun-schhist sie-ceimtun-schhist-upload
 .PHONY:		sie-v2-schhist sie-v2-schhist-upload
+.PHONY:		board-qi-avt2 board-qi-avt2-upload
 
 # All the targets are for demo purposes pnly !
 
@@ -95,3 +96,13 @@ sie-v2-schhist:
 
 sie-v2-schhist-upload:
 	$(RSYNC) _sie_v2/* $(DEST)/sie-v2/
+
+board-qi-avt2:
+	SCHHIST_TITLE="AVT2" \
+	  SCHHIST_HOME_URL=http://projects.qi-hardware.com/index.php/p/board-qi-avt2/ \
+	  SCHHIST_COMMIT_TEMPLATE='http://projects.qi-hardware.com/index.php/p/board-qi-avt2/source/commit/{}/' \
+	  ./schhist2web -S ../../board-qi-avt2 \
+	    main/Qi_AVT2.sch _avt2
+
+board-qi-avt2-upload:
+	$(RSYNC) _avt2/* $(DEST)/avt2/
