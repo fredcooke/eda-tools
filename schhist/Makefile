@@ -10,6 +10,7 @@ RSYNC = eval rsync -a --progress "--exclude "$(CACHE_DIRS)/
 .PHONY:		cntr-schhist cntr-schhist-upload
 .PHONY:		atusd-schhist atusd-schhist-upload
 .PHONY:		sie-ceimtun-schhist sie-ceimtun-schhist-upload
+.PHONY:		sie-v2-schhist sie-v2-schhist-upload
 
 # All the targets are for demo purposes pnly !
 
@@ -21,16 +22,19 @@ all:
 	@echo "  cntr-schhist cntr-schhist-upload" 2>&1
 	@echo "  atusd-schhist atusd-schhist-upload" 2>&1
 	@echo "  sie-ceimtun-schhist sie-ceimtun-schhist-upload" 2>&1
+	@echo "  sie-v2-schhist sie-v2-upload" 2>&1
 	@exit 1
 
 update:
 	cd /home/nn/xue && git pull
 	cd /home/nn/sie-ceimtun && git pull
+	cd /home/nn/nn-usb-fpga && git pull
 	$(MAKE) atusb-schhist atusb-schhist-upload
 	$(MAKE) xue-schhist xue-schhist-upload
 	$(MAKE) cntr-schhist cntr-schhist-upload
 	$(MAKE) atusd-schhist atusd-schhist-upload
 	$(MAKE) sie-ceimtun-schhist sie-ceimtun-schhist-upload
+	$(MAKE) sie-v2-schhist sie-v2-schhist-upload
 
 upload-index:
 	scp demo-index.html $(DEST)/index.html
@@ -81,3 +85,13 @@ sie-ceimtun-schhist:
 
 sie-ceimtun-schhist-upload:
 	$(RSYNC) _sie_ceimtun/* $(DEST)/sie-ceimtun/
+
+sie-v2-schhist:
+	SCHHIST_TITLE="SIE V2" \
+	  SCHHIST_HOME_URL=http://projects.qi-hardware.com/index.php/p/nn-usb-fpga/ \
+	  SCHHIST_COMMIT_TEMPLATE='http://projects.qi-hardware.com/index.php/p/nn-usb-fpga/source/commit/{}/' \
+	  ./schhist2web ../../nn-usb-fpga \
+	    KICAD_design_files/SAKC_PCB_v2/SAKC.sch _sie_v2
+
+sie-v2-schhist-upload:
+	$(RSYNC) _sie_v2/* $(DEST)/sie-v2/
