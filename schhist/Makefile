@@ -12,6 +12,7 @@ RSYNC = eval rsync -a --progress "--exclude "$(CACHE_DIRS)/
 .PHONY:		sie-ceimtun-schhist sie-ceimtun-schhist-upload
 .PHONY:		sie-v2-schhist sie-v2-schhist-upload
 .PHONY:		board-qi-avt2 board-qi-avt2-upload
+.PHONY:		mmone-jtag-serial-cable
 
 # All the targets are for demo purposes pnly !
 
@@ -106,3 +107,10 @@ board-qi-avt2:
 
 board-qi-avt2-upload:
 	$(RSYNC) _avt2/* $(DEST)/avt2/
+
+mmone-jtag-serial-cable:
+	SCHHIST_TITLE="MM JTAG" \
+	  SCHHIST_HOME_URL=http://projects.qi-hardware.com/index.php/p/mmone-jtag-serial-cable/ \
+	  SCHHIST_COMMIT_TEMPLATE='http://projects.qi-hardware.com/index.php/p/mmone-jtag-serial-cable/source/commit/{}/' \
+	  ./schhist2web -S ../../mmone-jtag-serial-cable \
+	    ./usb_jtag.sch _mm_jtag
