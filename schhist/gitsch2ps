@@ -17,6 +17,7 @@ usage()
     cat <<EOF 1>&2
 usage: $0 [options] top-dir top-schem [commit] outdir
 
+  -c  keep .lib.cache (default: delete it)
   -k  keep the temporary directory and print its name
   -S  sanitize the KiCad profile and the top-level sheet
 EOF
@@ -27,8 +28,11 @@ EOF
 sanitize_profile=true
 sanitize_schem=true
 keep=false
+cache=false
 while true; do
     case "$1" in
+    -c)	cache=true
+	shift;;
     -k) keep=true
 	shift;;
     -S) sanitize_profile=`PATH="$PATH":\`dirname "$0"\` which sanitize-profile`
@@ -71,6 +75,16 @@ rm -rf "$outdir"
 git clone -q -s -n "$dir/.git" "$tmp" || exit
 ( cd "$tmp" && git checkout -q "$commit"; ) || exit
 
+clib=${schem%.sch}.cache.lib
+if [ -e "$tmp/$clib" ]; then
+    if $cache; then
+	echo "found $clib (keeping it)" 1>&2
+    else
+	echo "removing $clib" 1>&2
+	rm -f "$tmp/$clib"
+    fi
+fi
+
 pro=${schem%.sch}.pro
 
 if [ ! -f "$tmp/$pro" -a ! -f "$tmp/$schem" ]; then
@@ -84,7 +98,7 @@ if [ ! -f "$tmp/$schem" ]; then
 fi
 
 if [ ! -f "$tmp/$pro" ]; then
-    echo "$pronot found (checked out into $tmp), skipping commit" 1>&2
+    echo "$pro not found (checked out into $tmp), skipping commit" 1>&2
     exit 0
 fi
 
