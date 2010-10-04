@@ -1,0 +1,151 @@
+#!/bin/sh
+#
+# dsv - Improved data sheet viewer
+#
+
+#
+# Theory of operation:
+#
+# We download data sheets from the Internet into local caches and provide a
+# quick access mechanism for viewing the data sheets. A cache is a directory
+# called .dsv/. Caches can be hierarchical. "dsv setup" generates a cache in
+# the local directory. "dsv <component>" and "dsv ls" search the hierarchy,
+# starting with the current directory.
+#
+# Caches contain two types of files: dsv-<ref> is the name or alias with
+# which a data sheet is referenced. <ref>-<filename> is the actual data
+# sheet, with <filename> being the name of the file we downloaded.
+#
+
+DSV_DIR=.dsv
+
+
+usage()
+{
+    echo "usage: $0 <component>" 2>&1
+    echo "       $0 help" 2>&1
+    echo "       $0 [ls]" 2>&1
+    echo "       $0 setup <info-file> .." 2>&1
+    exit 1
+}
+
+
+up()
+{
+    old="`pwd`"
+    cd ..
+    new="`pwd`"
+    [ "$old" != "$new" ]
+}
+
+
+flush()
+{
+    [ -z "$name" ] && return
+    if [ -z "$url" ]; then
+	echo "$name: no URL" 2>&1
+	exit 1
+    fi
+    ds="$name-`basename "$url"`"
+    mkdir -p $DSV_DIR
+    if [ ! -r "$DSV_DIR/$ds" ]; then
+	wget -nv -O "$DSV_DIR/$ds" "$url"
+	# @@@ should handle error
+    fi
+    for n in $name $alias; do
+	echo "$ds" >$DSV_DIR/dsv-$n
+    done
+    name=
+    alias=
+    url=
+}
+
+
+set_value()
+{
+    case "$tag" in
+	N:|n:)	flush
+		name="$value";;
+	A:|a:)	alias="$alias $value";;
+	D:|d:)	url="$value";;
+	"")
+		;;	# first iteration
+	*)	echo "unrecognized tag \"$tag\"" 2>&1
+		exit 1;;
+    esac
+    value=
+}
+
+
+eof()
+{
+    flush
+    tag=
+}
+
+
+setup()
+{
+    for n in "$@"; do
+	if [ ! -r "$n" ]; then
+	    echo "$n: not found" 2>&1
+	    continue
+	fi
+        while read line; do
+	    [ "$line" = "${line###}" ] || continue
+	    tmp=`echo "$line" | awk '/^[^\t ]/ { print $1 }'`
+	    tail="`echo "$line" | sed 's/^[^\t ]*[\t ]*//'`"
+	    if [ -z "$tmp" ]; then
+		[ -z "$tail" ] || value="$value $tail"
+	    else
+		set_value
+		tag=$tmp
+		value="$tail"
+	    fi
+	done <"$n"
+	set_value
+	eof
+    done
+}
+
+
+list()
+{
+     while true; do
+	if [ -d $DSV_DIR ]; then
+	    ls -1 $DSV_DIR | sed 's/^dsv-//p;d'
+	fi
+	up || break
+     done | sort | uniq | column
+}
+
+
+search()
+{
+    while true; do
+	if [ -d $DSV_DIR ]; then
+	    if [ -r "$DSV_DIR/dsv-$1" ]; then
+		file="`cat $DSV_DIR/dsv-$1`"
+		if [ ! -r "$DSV_DIR/$file" ]; then
+		    echo "$1 -> $file: does not exist" 2>&1
+		    exit 1
+		fi
+		xpdf "$DSV_DIR/$file"
+		exit
+	    fi
+	fi
+	if ! up; then
+	    echo "no data sheet found for \"$1\"" 2>&1
+	    exit 1
+	fi
+    done
+}
+
+
+case "$1" in
+    help|-*)	usage;;
+    ""|ls)	list;;
+    setup)	shift
+		setup "$@";;
+    *)		search "$@";;
+esac
