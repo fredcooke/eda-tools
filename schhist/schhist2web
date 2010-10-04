@@ -239,6 +239,7 @@ for n in $first `cd "$dir" && git rev-list --reverse $first..HEAD`; do
 	#
 	tmp2=`gitsch2ps -k $sanitize  "$dir" "$schname" $n "$tmp"` || exit
 	for m in "$tmp"/*.ps; do
+	    [ "$m" = "$tmp/*.ps" ] && break
 	    # call sub-sheets by their own name, without prepending the
 	    # top-level sheet's name
 	    name=`basename "$m" .ps`

@@ -71,15 +71,27 @@ rm -rf "$outdir"
 git clone -q -s -n "$dir/.git" "$tmp" || exit
 ( cd "$tmp" && git checkout -q "$commit"; ) || exit
 
-if [ ! -f "$tmp/$schem" ]; then
-    echo "$schem not found (checked out into $tmp)" 1>&2
+pro=${schem%.sch}.pro
+
+if [ ! -f "$tmp/$pro" -a ! -f "$tmp/$schem" ]; then
+    echo "neither $pro nor $schem found (checked out into $tmp)" 1>&2
     exit 1
+fi
+
+if [ ! -f "$tmp/$schem" ]; then
+    echo "$schem not found (checked out into $tmp), skipping commit" 1>&2
+    exit 0
+fi
+
+if [ ! -f "$tmp/$pro" ]; then
+    echo "$pronot found (checked out into $tmp), skipping commit" 1>&2
+    exit 0
 fi
 
 (
     cd "$sch" || exit
     rm -f *.ps
-    $sanitize_profile "$tmp/${schem%.sch}.pro" || exit
+    $sanitize_profile "$tmp/$pro" || exit
     $sanitize_schem "$tmp/$schem" || exit
     eeschema --plot "$tmp/$schem"
 ) || exit
