@@ -120,6 +120,7 @@ usage: $0 [options] [top-dir] [top-schem] [out-dir]
   -n            don't use previous cache content (rebuild the cache)
   -D            debug mode: make temporary work trees unique and keep them
   -S            sanitize KiCad profile and top-level sheet
+  -T tmp-dir    use the specified temporary directory instead of _schhist
 EOF
     exit 1
 }
@@ -133,13 +134,14 @@ sanitize=
 use_sch_name=false
 debug=false
 debug_opt=
+tmp=`pwd`/_schhist2web
 
 while true; do
     case "$1" in
     -n)	no_cache=true
 	shift;;
     -c)	[ -z "$2" ] && usage
-	cache="$2"
+	cache=$2
 	shift 2;;
     -f)	use_sch_name=true
 	shift;;
@@ -148,6 +150,9 @@ while true; do
 	shift;;
     -S)	sanitize=-S
 	shift;;
+    -T)	[ -z "$2" ] && usage
+	tmp=$2
+	shift 2;;
     -*) usage;;
     *)	break;;
     esac
@@ -231,7 +236,6 @@ for n in $first `cd "$dir" && git rev-list --reverse $first..HEAD`; do
 	echo Name change $schname to $new 1>&2
 	schname="$new"
     fi
-    tmp=`pwd`/_schhist2web
     trap "rm -rf \"$cache/$n/ps\" \"$cache/$n/ppm0\" \"$cache/$n/ppm1\" \
       \"$cache/$n/ppm2\" \"$tmp\"" 0
     if [ ! -d "$cache/$n/ppm2" ]; then
