@@ -19,6 +19,7 @@ usage: $0 [options] top-dir top-schem [commit] outdir
 
   -c  keep .lib.cache (default: delete it)
   -k  keep the temporary directory and print its name
+  -D  debug mode: make temporary work tree unique and keep it
   -S  sanitize the KiCad profile and the top-level sheet
 EOF
     exit 1
@@ -29,11 +30,15 @@ sanitize_profile=true
 sanitize_schem=true
 keep=false
 cache=false
+debug=false
+
 while true; do
     case "$1" in
     -c)	cache=true
 	shift;;
     -k) keep=true
+	shift;;
+    -D)	debug=true;
 	shift;;
     -S) sanitize_profile=`PATH="$PATH":\`dirname "$0"\` which sanitize-profile`
 	[ "$sanitize_profile" = "${sanitize_profile#/}" ] &&
@@ -66,7 +71,11 @@ fi
 [ "$commit" != HEAD -o -f "$dir/$schem" ] || usage
 [ -d "$dir/.git" ] || usage
 
-tmp="$dir/../_gitsch2ps"
+if $debug; then
+    tmp="$dir/../_gitsch2ps_$$"
+else
+    tmp="$dir/../_gitsch2ps"
+fi
 sch="$tmp/$sdir"
 
 rm -rf "$tmp"
@@ -111,10 +120,14 @@ fi
 ) || exit
 
 mkdir -p "$outdir"
-mv "$sch"/*.ps "$outdir"
+if $debug; then
+    cp "$sch"/*.ps "$outdir"
+else
+    mv "$sch"/*.ps "$outdir"
+fi
 
 if $keep; then
     echo "$tmp"
 else
-    rm -rf "$tmp"
+    $debug || rm -rf "$tmp"
 fi

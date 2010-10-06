@@ -110,7 +110,7 @@ ordered_names()
 usage()
 {
     cat <<EOF 2>&1
-usage: $0 [-c cache-dir] [-f] [-n] [-S] [top-dir] [top-schem] [out-dir]
+usage: $0 [options] [top-dir] [top-schem] [out-dir]
 
   top-dir       top-level directory of the git archive (default: locate it)
   top-schem     root sheet of the schematics (default: locate it in top-dir)
@@ -118,6 +118,7 @@ usage: $0 [-c cache-dir] [-f] [-n] [-S] [top-dir] [top-schem] [out-dir]
   -c cache-dir  cache directory (default: same as out-dir)
   -f            identify sheets by their file name, not the sheet name
   -n            don't use previous cache content (rebuild the cache)
+  -D            debug mode: make temporary work trees unique and keep them
   -S            sanitize KiCad profile and top-level sheet
 EOF
     exit 1
@@ -130,6 +131,8 @@ EOF
 no_cache=false
 sanitize=
 use_sch_name=false
+debug=false
+debug_opt=
 
 while true; do
     case "$1" in
@@ -139,6 +142,9 @@ while true; do
 	cache="$2"
 	shift 2;;
     -f)	use_sch_name=true
+	shift;;
+    -D)	debug=true
+	debug_opt=-D
 	shift;;
     -S)	sanitize=-S
 	shift;;
@@ -237,7 +243,8 @@ for n in $first `cd "$dir" && git rev-list --reverse $first..HEAD`; do
 	# the ghostscript run and just put a symlink, replacing the less
 	# efficient optimization below.
 	#
-	tmp2=`gitsch2ps -k $sanitize  "$dir" "$schname" $n "$tmp"` || exit
+	tmp2=`gitsch2ps -k $sanitize $debug_opt "$dir" "$schname" $n "$tmp"` ||
+	  exit
 	for m in "$tmp"/*.ps; do
 	    [ "$m" = "$tmp/*.ps" ] && break
 	    # call sub-sheets by their own name, without prepending the
@@ -281,7 +288,8 @@ for n in $first `cd "$dir" && git rev-list --reverse $first..HEAD`; do
 	    ppm="$cache/$n/ppm2/$name.ppm"
 	    normalizeschps -w 500 "$m" | schps2ppm - "$ppm" || exit
 	done
-	rm -rf "$tmp" "$tmp2"
+	rm -rf "$tmp"
+	$debug || rm -rf "$tmp2"
     fi
     for m in "$cache/$n/ppm0/"*; do
 	[ "$m" = "$cache/$n/ppm0/*" ] && break
