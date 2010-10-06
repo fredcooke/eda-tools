@@ -322,7 +322,8 @@ fi
 # --- Title of the Web page and table header ----------------------------------
 
 
-index="$out/index.html"
+index="$out/_index.html"
+index_final="$out/index.html"
 all=
 {
     cat <<EOF
@@ -469,3 +470,5 @@ cat <<EOF >>"$index"
 </BODY>
 </HTML>
 EOF
+
+mv "$index" "$index_final"
