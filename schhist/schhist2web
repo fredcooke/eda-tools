@@ -65,7 +65,7 @@ commit_entry()
 EOF
     echo "<PRE>"
     ( cd "$dir" && git show \
-        --pretty=format:"%aN <%aE>%n    %ad, %ar%n%n    %s" \
+        --pretty=format:"%aN <%aE>%n    %ad%n%n    %s" \
 	--quiet $next; ) |
       sed 's/&/&amp;/g;s/</\&lt;/g;s/>/\&gt;/g' |
       if [ -z "$SCHHIST_COMMIT_TEMPLATE" ]; then
