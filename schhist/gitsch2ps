@@ -55,15 +55,15 @@ while true; do
 done
 
 [ ! -z "$3" -a -z "$5" ] || usage
-dir="$1"
-schem="$2"
+dir=$1
+schem=$2
 sdir=`dirname "$schem"`
 if [ -z "$4" ]; then
     commit=HEAD
-    outdir="$3"
+    outdir=$3
 else
-    commit="$3"
-    outdir="$4"
+    commit=$3
+    outdir=$4
 fi
 
 [ "$dir" != "${dir#/}" ] || dir=`pwd`/$dir
@@ -72,11 +72,11 @@ fi
 [ -d "$dir/.git" ] || usage
 
 if $debug; then
-    tmp="$dir/../_gitsch2ps_$$"
+    tmp=$dir/../_gitsch2ps_$commit
 else
-    tmp="$dir/../_gitsch2ps"
+    tmp=$dir/../_gitsch2ps
 fi
-sch="$tmp/$sdir"
+sch=$tmp/$sdir
 
 rm -rf "$tmp"
 rm -rf "$outdir"
