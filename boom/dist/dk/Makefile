@@ -1,7 +1,7 @@
 CACHE = query.data
 EQUS = panasonic-erj stackpole-rmcf
 
-.SUFFIXES:		.catq .equ
+.PHONY:			all
 
 all:			db/digi-key.dsc db/digi-key.inv
 
@@ -23,5 +23,5 @@ db/digi-key.inv:	$(CACHE)
 			perl ./dk-db.pl inv $< >$@ || \
 			  { rm -f $@; exit 1; }
 
-.catq.equ:
+db/%.equ:		%.catq
 			perl ./dk-catq.pl $< >$@ || { rm -rf $@; exit 1; }
