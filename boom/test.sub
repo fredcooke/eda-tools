@@ -1,0 +1,61 @@
+#SUB
+
+# Taken from ben-wpan. Removed anything project-specific but the translation
+# rules.
+
+-> T=unknown
+
+R[0-9P]* {	# also handle RP...
+    -> T=R
+    VAL=$R -> R=$VAL
+#    -> TOL=5%
+    FN=$% -> TOL=$FN
+}
+
+RP[0-9]* {
+    -> T=RA
+    # the other parameters have already been taken care of by R*
+}
+
+C[0-9]* {
+    -> T=C
+    VAL=*F -> C=$VAL
+    FN=*V -> V=>=$FN
+}
+
+L[0-9]* {
+    -> T=L
+    VAL=*H -> L=$VAL
+    FN=*A -> I=>=$FN
+}
+
+B[0-9]* {
+    -> T=FILTER M=BEAD
+    VAL=$R -> R=$VAL
+    FN=*A -> I=$FN
+    FN=*R -> Rdc=$FN
+}
+
+D[0-9]* {
+    -> T=D
+    VAL=*F {	# heuristic to detect TVS
+	-> M=TVS
+	VAL=*F -> C=<=$VAL
+	FN=(*V)ac -> Vac=$FN:1
+	FN=(*V)dc -> Vdc=$FN:1
+
+	#
+	# Hack: some companies specify the class of varistors with Vdc = 9 V
+	# as Vac = 6.5 V while others use Vac = 7 V. Sometimes, Vac is even
+	# omitted entirely.
+	#
+	# Here, we work around the issue that Karmax use Vac = 6.5 V,
+	# Cooper/Bussmann use Vac = 7V if at all, and out schematics specify
+	# Vac = 6.5 V.
+	#
+	Vac=6.5V {
+	    -> Vac=
+	    -> Vdc=9V
+	}
+    }
+}
