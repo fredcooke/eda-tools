@@ -1,5 +1,5 @@
 CACHE = query.data
-EQUS = panasonic-erj stackpole-rmcf
+EQUS = panasonic-erj stackpole-rmcf yageo-rc
 
 .PHONY:			all
 

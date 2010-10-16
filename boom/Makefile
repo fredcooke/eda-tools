@@ -5,7 +5,8 @@ KITS = 1
 INV = dist/dk/db/digi-key.inv
 EQU = dist/dk/db/digi-key.equ
 DSC = dist/dk/db/digi-key.dsc
-CHR = manu/panasonic/panasonic.chr manu/stackpole/stackpole.chr
+CHR = manu/panasonic/panasonic.chr manu/stackpole/stackpole.chr \
+      manu/yageo/yageo.chr
 
 .PHONY:		all show again
 

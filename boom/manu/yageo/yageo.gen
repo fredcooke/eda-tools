@@ -1,0 +1,40 @@
+#GEN
+
+# http://www.yageo.com/documents/recent/PYu-RC0402_51_RoHS_L_5.pdf
+# http://www.yageo.com/documents/recent/Product Selection Guide 2009.pdf
+
+RC* -> T=R {
+
+    RC(????)([FJ])[RK]-(07|10|13)(*)L* ->
+	FP=$REF:1 _TOL=$REF:2 _R=$REF:4
+
+    _TOL=F -> TOL=1%
+    _TOL=J -> TOL=5%
+
+    FP=0100 -> FP=01005 P=1/32W V=15
+    FP=0201 -> P=1/20W V=25V
+    FP=0402 -> P=1/16W V=50V
+    FP=0603 -> P=1/10W V=50V
+    FP=0805 -> P=1/8W V=150V
+    FP=1206 -> P=1/4W V=200V
+
+    _TOL=F -> TOL=1%
+    _TOL=J -> TOL=5%
+}
+
+# Adjust multipliers
+
+_R=(*)R(*)	->	_R=0$_R:1.$_R:2
+_R=(*)K(*)	->	_R=$_R:1.${_R:2}k
+_R=(*)M(*)	->	_R=$_R:1.${_R:2}M
+
+# Remove leading and trailing zeroes
+
+_R=0([0-9]*)		-> _R=$_R:1
+_R=(*.[0-9]*)0([kM])	-> _R=$_R:1$_R:2
+_R=(*).0([kM])		-> _R=$_R:1$_R:2
+_R=(*.[0-9]*)0		-> _R=$_R:1
+_R=(*).0		-> _R=$_R:1
+_R=(*).([kM]|)		-> _R=$_R:1$_R:2
+
+T=R -> R=${_R}R !
