@@ -1,0 +1,14 @@
+#
+# File structure:
+#
+# - manufacturer name as used in BOOM
+# - keyword
+# - product category
+# - zero or more field=value pairs
+#
+# Comment lines and empty lines are ignored.
+#
+PANASONIC
+erj
+Chip Resistor - Surface Mount
+Packaging = Cut Tape (CT)

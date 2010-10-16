@@ -1,0 +1,153 @@
+#GEN
+
+# http://industrial.panasonic.com/www-data/pdf/AOA0000/AOA0000CE1.pdf
+# http://industrial.panasonic.com/www-data/pdf/AOA0000/AOA0000CE2.pdf
+# http://industrial.panasonic.com/www-data/pdf/AOA0000/AOA0000CE3.pdf
+# http://industrial.panasonic.com/www-data/pdf/AOA0000/AOA0000CE4.pdf
+# http://industrial.panasonic.com/www-data/pdf/AOA0000/AOA0000CE7.pdf
+# http://media.digikey.com/pdf/Data Sheets/Panasonic Resistors Thermistors PDFs/ERJ1TYFyyyU, ERJ1TY0R00U.pdf
+
+ERJ* -> T=R {
+
+    # http://industrial.panasonic.com/www-data/pdf/AOA0000/AOA0000CE1.pdf
+
+    # XGE is special, see below
+    # K tolerance is undocumented
+
+    ERJ-([X1]GN|[X12368]GE|14|12|12Z|1T)(Y|)(J|K|0)([0-9R][0-9R][0-9])* ->
+	_FP=$REF:1 _TOL=$REF:3 _E12_1=$REF:4
+
+    # http://industrial.panasonic.com/www-data/pdf/AOA0000/AOA0000CE2.pdf
+
+    ERJ-([1236]R)([HBKE])(D)([0-9R][0-9R][0-9R][0-9])* ->
+	_FP=$REF:1 _TOL=$REF:3 _E12_1=$REF:4
+
+    # 1GE is special, see below
+
+    ERJ-([X1]GN|1GE|2RK|3EK|[68]EN|1[42T]N|12S)(F)([0-9R][0-9R][0-9R][0-9])* ->
+	_FP=$REF:1 _TOL=$REF:2 _E12_1=$REF:3
+
+    # http://industrial.panasonic.com/www-data/pdf/AOA0000/AOA0000CE3.pdf
+
+    ERJ-([2368]B|[368]R|1[4T]R|12[RZ])(S|Q)([FGJ])([0-9R][0-9R][0-9])* ->
+	_FP=$REF:1 _FP2=$REF:1 _TOL=$REF:3 _E12_1=$REF:4
+
+    ERJ-([2368]BW)([FGJ])([0-9R][0-9R][0-9R][0-9])* ->
+	_FP=$REF:1 _FP2=$REF:1 _TOL=$REF:2 _E12_1=$REF:3
+
+    ERJ-(L0[368]|L1[42DW])(K|U)(F|J)([0-9][0-9][MC])* ->
+	_FP=$REF:1 _TOL=$REF:3 _LOW_R=$REF:4
+
+    # http://industrial.panasonic.com/www-data/pdf/AOA0000/AOA0000CE4.pdf
+
+    ERJ-(P0[368]|P14)(D|F)([R0-9][R0-9][R0-9][0-9])* ->
+	_FP=$REF:1 _TOL=$REF:3 _E12_1=$REF:3
+
+    ERJ-(P0[368]|P14)(J)([R0-9][R0-9][0-9])* ->
+	_FP=$REF:1 _TOL=$REF:3 _E12_1=$REF:3
+    
+    # http://industrial.panasonic.com/www-data/pdf/AOA0000/AOA0000CE7.pdf
+
+    ERJ-(M03)N(F|J)([0-9][0-9M][0-9M])* ->
+	_FP=$REF:1 _TOL=$REF:2 _LOW_R=$REF:3
+
+    ERJ-(M1W)(S|T)(F|J)([0-9][0-9M][0-9M])* ->
+	_FP=$REF:1 _TOL=$REF:3 _LOW_R=$REF:4
+
+    # ERJ1TY0R00U.pdf
+
+    ERJ-(1T)(Y)(F)([0-9][0-9][0-9])* ->
+	_FP=$REF:1 _TOL=$REF:3 _E12_1=$REF:4
+
+    # XGE and 1GE are not listed in the part number decoding scheme.
+    # Assume they're equal to XGN and 1GN, respectively.
+
+    _FP=XGE -> _FP=XGN
+    _FP=1GE -> _FP=1GN
+
+
+    # http://industrial.panasonic.com/www-data/pdf/AOA0000/AOA0000CE1.pdf
+
+    _FP=XGN -> FP=01005 P=1/32W V=15V
+    _FP=1GN -> FP=0201 P=1/20W V=25V
+    _FP=2GE -> FP=0402 P=1/10W V=50V
+    _FP=3GE -> FP=0603 P=1/10W V=75V
+    _FP=6GE -> FP=0805 P=1/8W V=150V
+    _FP=8GE -> FP=1206 P=1/4W V=200V
+    _FP=12Z -> FP=2010 P=3/4W V=200V
+    _FP=14 -> FP=1210 P=1/2W V=200V
+    _FP=12 -> FP=1812 P=3/4W V=200V
+    _FP=1T -> FP=2512 P=1W V=200V
+
+    # http://industrial.panasonic.com/www-data/pdf/AOA0000/AOA0000CE2.pdf
+
+    _FP=1R -> FP=0201 P=1/20W V=15V
+    _FP=2R -> FP=0402 P=1/16W V=50V
+    _FP=3R -> FP=0603 P=1/16W V=50V
+    _FP=6R -> FP=0805 P=1/10W V=150V
+
+    _FP=2RK -> FP=0402 P=1/10W V=50V
+    _FP=3EK -> FP=0603 P=1/10W V=75V
+    _FP=6EN -> FP=0805 P=1/8W V=150V
+    _FP=8EN -> FP=1206 P=1/4W V=200V
+    _FP=14N -> FP=1210 P=1/2W V=200V
+    _FP=12N -> FP=1812 P=3/4W V=200V
+    _FP=12S -> FP=2010 P=3/4W V=200V
+    _FP=1TN -> FP=2512 P=1W V=200V
+
+    # http://industrial.panasonic.com/www-data/pdf/AOA0000/AOA0000CE3.pdf
+
+    _FP=2B -> FP=0402 P=1/8W
+    _FP2=3R -> FP=0603 P=1/10W		# override regular 3R
+    _FP=3B -> FP=0603 P=1/5W
+    _FP2=6R -> FP=0805 P=1/8W		# override regular 6R
+    _FP=6B -> FP=0805 P=1/4W
+    _FP=8R -> FP=1206 P=1/4W
+    _FP=8B -> FP=1206 P=1/3W
+    _FP=14R -> FP=1210 P=1/4W
+    _FP=14B -> FP=1210 P=1/2W
+    _FP=12R -> FP=1812 P=1/2W
+    _FP=12Z -> FP=2010 P=1/2W
+    _FP=1TR -> FP=2512 P=1W
+
+    _FP=2BW -> FP=0402 P=1/8W
+    _FP=3BW -> FP=0603 P=1/4W
+    _FP=6BW -> FP=0805 P=1/3W
+    _FP=8BW -> FP=1206 P=1/2W
+
+    _FP=L03 -> FP=0603 P=1/10W
+    _FP=L06 -> FP=0805 P=1/8W
+    _FP=L08 -> FP=1206 P=1/4W
+    _FP=L14 -> FP=1210 P=1/3W
+    _FP=L12 -> FP=1812 P=1/2W
+    _FP=L1D -> FP=2010 P=1/2W
+    _FP=L1W -> FP=2512 P=1W
+
+    # http://industrial.panasonic.com/www-data/pdf/AOA0000/AOA0000CE4.pdf
+
+    _FP=P03 -> FP=0603 P=1/5W V=150V
+    _FP=P06 -> FP=0805 P=1/4W V=150V
+    _FP=P08 -> FP=1206 P=1/3W V=200V
+    _FP=P12 -> FP=1210 P=1/2W V=200V
+
+    # http://industrial.panasonic.com/www-data/pdf/AOA0000/AOA0000CE7.pdf
+
+    _FP=M03 -> FP=0603 P=1/4W
+    _FP=M1W -> FP=2512 P=1W
+
+    # L and M series don't use E12
+
+    _LOW_R=(?)M(?) -> _E12=$_LOW_R:1.${_LOW_R:2}m
+    _LOW_R=(??)M -> _E12_1=R0${_LOW_R:1}
+    _LOW_R=(??)C -> _E12_1=R${_LOW_R:1}
+
+    _TOL=D -> TOL=0.5%
+    _TOL=F -> TOL=1%
+    _TOL=G -> TOL=2%
+    _TOL=J -> TOL=5%
+    _TOL=K -> TOL=10%
+}
+
+include ../../lib/e12.inc
+
+T=R -> R=${_E12}R !

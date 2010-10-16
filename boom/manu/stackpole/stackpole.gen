@@ -1,0 +1,37 @@
+#GEN
+
+# http://www.seielect.com/Catalog/SEI-RMC.pdf
+
+RMCF* -> T=R {
+    RMCF(????)(?)(?)([0-9R][0-9RKM][0-9RKM])* ->
+	FP=$REF:1 _TOL=$REF:2 _R=$REF:3
+
+    _TOL=F -> TOL=1%
+    _TOL=J -> TOL=5%
+
+    FP=0201 -> P=1/20W V=25V
+    FP=0402 -> P=1/16W V=50V
+    FP=0603 -> P=1/10W V=50V
+    FP=0805 -> P=1/8W V=150V
+    FP=1206 -> P=1/4W V=200V
+    FP=1210 -> P=1/3W V=200V
+    FP=2010 -> P=3/4W V=200V
+    FP=2512 -> P=1W V=200V
+}
+
+
+# Adjust multipliers
+
+_R=(*)R(*)	->	_R=0$_R:1.$_R:2
+_R=(*)K(*)	->	_R=$_R:1.${_R:2}k
+_R=(*)M(*)	->	_R=$_R:1.${_R:2}M
+
+# Remove leading and trailing zeroes
+
+_R=0([0-9]*)		-> _R=$_R:1
+_R=(*.[0-9]*)0([kM])	-> _R=$_R:1$_R:2
+_R=(*).0([kM])		-> _R=$_R:1$_R:2
+_R=(*.[0-9]*)0		-> _R=$_R:1
+_R=(*).0		-> _R=$_R:1
+
+T=R -> R=${_R}R !
