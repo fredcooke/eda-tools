@@ -128,7 +128,7 @@ ERJ* -> T=R {
     _FP=P03 -> FP=0603 P=1/5W V=150V
     _FP=P06 -> FP=0805 P=1/4W V=150V
     _FP=P08 -> FP=1206 P=1/3W V=200V
-    _FP=P12 -> FP=1210 P=1/2W V=200V
+    _FP=P14 -> FP=1210 P=1/2W V=200V
 
     # http://industrial.panasonic.com/www-data/pdf/AOA0000/AOA0000CE7.pdf
 
