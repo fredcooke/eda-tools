@@ -24,6 +24,11 @@ sub query
 # --- Read query specification ------------------------------------------------
 
 
+if ($ARGV[0] eq "-t") {
+	$test = 1;
+	shift @ARGV;
+}
+
 $spec = $ARGV[0];
 
 while (<>) {
@@ -38,7 +43,7 @@ $key = shift @q;
 $cat = shift @q;
 for (@q) {
 	die "not a field=value pair: \"$_\"" unless /\s*=\s*/;
-	$f{$`} = $';
+	push(@{ $f{$`} }, $');
 }
 
 
@@ -91,9 +96,20 @@ for (@q) {
 for (keys %f) {
 	$field = $col_field{$_};
 	die "no such field: $_" unless defined $field;
-	$value = $val{$_}{$f{$_}};
-	die "no such value: \"$_\"=\"$f{$_}\"" unless defined $value;
-	$url .= "&$field=$value";
+	for $v (@{ $f{$_} }) {
+		$value = $val{$_}{$v};
+		die "no such value: \"$_\"=\"$f{$_}\"" unless defined $value;
+		$url .= "&$field=$value";
+	}
+}
+
+
+# --- Stop here if in test mode -----------------------------------------------
+
+
+if ($test) {
+	print "$url\n";
+	exit(0);
 }
 
 
