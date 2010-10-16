@@ -1,0 +1,28 @@
+#!/usr/bin/perl
+
+#
+# Format:
+#
+# number comp_ref_category footprint value ...
+#
+
+print "eeschema (whatever) >> some date\n\n";
+print "#Cmp ( order = Reference )\n";
+while (<>) {
+	s/#.*//;
+	next if /^\s*$/;
+	@a = split(/\s+/, $_);
+	$n = shift @a;
+	$cref = shift @a;
+	$fp = shift @a;
+	$value = shift @a;
+	for ($i = 0; $i != $n; $i++) {
+		$p++;
+		print "| $cref$p\t$value\t; $fp\t";
+		for (@a) {
+			print "; $_\t";
+		}
+		print "\n";
+	}
+}
+print "#End Cmp\n";
