@@ -1,0 +1,5 @@
+This is a construction site. The directory layout is ugly and most of the
+internal dependencies need to be resolved manually. There's also no easy
+way to use all this for anything but the tests.
+
+Check back in a few days or weeks and it may all look better.
