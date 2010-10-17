@@ -3,7 +3,7 @@ BOOM=PATH=/home/moko/svn.openmoko.org/trunk/eda/boom:../boom:$$PATH boom
 KITS = 1
 
 DIST = dk
-MANU = murata panasonic stackpole yageo
+MANU = murata panasonic stackpole tdk yageo
 
 EQU = dist/all.equ
 INV = dist/all.inv
