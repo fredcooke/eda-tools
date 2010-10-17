@@ -8,14 +8,15 @@ RMCF* -> T=R {
 
     include ../../lib/tol.inc
 
-    FP=0201 -> P=1/20W V=25V
-    FP=0402 -> P=1/16W V=50V
-    FP=0603 -> P=1/10W V=50V
-    FP=0805 -> P=1/8W V=150V
-    FP=1206 -> P=1/4W V=200V
-    FP=1210 -> P=1/3W V=200V
-    FP=2010 -> P=3/4W V=200V
-    FP=2512 -> P=1W V=200V
+    # all TC are worst case
+    FP=0201 -> P=1/20W V=25V TC=600ppm/K
+    FP=0402 -> P=1/16W V=50V TC=500ppm/K
+    FP=0603 -> P=1/10W V=50V TC=600ppm/K
+    FP=0805 -> P=1/8W V=150V TC=500ppm/K
+    FP=1206 -> P=1/4W V=200V TC=500ppm/K
+    FP=1210 -> P=1/3W V=200V TC=400ppm/K
+    FP=2010 -> P=3/4W V=200V TC=500ppm/K
+    FP=2512 -> P=1W V=200V TC=500ppm/K
 }
 
 

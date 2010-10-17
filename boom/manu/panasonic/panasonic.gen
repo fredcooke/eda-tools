@@ -20,7 +20,7 @@ ERJ* -> T=R {
     # http://industrial.panasonic.com/www-data/pdf/AOA0000/AOA0000CE2.pdf
 
     ERJ-([1236]R)([HBKE])(D)([0-9R][0-9R][0-9R][0-9])* ->
-	_FP=$REF:1 _TOL=$REF:3 _E12_1=$REF:4
+	_FP=$REF:1 _TC=$REF:2 _TOL=$REF:3 _E12_1=$REF:4
 
     # 1GE is special, see below
 
@@ -65,75 +65,79 @@ ERJ* -> T=R {
     _FP=XGE -> _FP=XGN
     _FP=1GE -> _FP=1GN
 
-
     # http://industrial.panasonic.com/www-data/pdf/AOA0000/AOA0000CE1.pdf
 
-    _FP=XGN -> FP=01005 P=1/32W V=15V
-    _FP=1GN -> FP=0201 P=1/20W V=25V
-    _FP=2GE -> FP=0402 P=1/10W V=50V
-    _FP=3GE -> FP=0603 P=1/10W V=75V
-    _FP=6GE -> FP=0805 P=1/8W V=150V
-    _FP=8GE -> FP=1206 P=1/4W V=200V
-    _FP=12Z -> FP=2010 P=3/4W V=200V
-    _FP=14 -> FP=1210 P=1/2W V=200V
-    _FP=12 -> FP=1812 P=3/4W V=200V
-    _FP=1T -> FP=2512 P=1W V=200V
+    _FP=XGN -> FP=01005 P=1/32W V=15V TC=-300/+600ppm/K	# all TC are worst case
+    _FP=1GN -> FP=0201 P=1/20W V=25V TC=-400/+600ppm/K
+    _FP=2GE -> FP=0402 P=1/10W V=50V TC=-400/+600ppm/K
+    _FP=3GE -> FP=0603 P=1/10W V=75V TC=-400/+600ppm/K
+    _FP=6GE -> FP=0805 P=1/8W V=150V TC=-400/+600ppm/K
+    _FP=8GE -> FP=1206 P=1/4W V=200V TC=-400/+600ppm/K
+    _FP=12Z -> FP=2010 P=3/4W V=200V TC=-400/+600ppm/K
+    _FP=14 -> FP=1210 P=1/2W V=200V TC=-400/+600ppm/K
+    _FP=12 -> FP=1812 P=3/4W V=200V TC=-400/+600ppm/K
+    _FP=1T -> FP=2512 P=1W V=200V TC=-400/+600ppm/K
 
     # http://industrial.panasonic.com/www-data/pdf/AOA0000/AOA0000CE2.pdf
+
+    _TC=[HB] -> TC=50ppm/K
+    _TC=[KE] -> TC=100ppm/K
 
     _FP=1R -> FP=0201 P=1/20W V=15V
     _FP=2R -> FP=0402 P=1/16W V=50V
     _FP=3R -> FP=0603 P=1/16W V=50V
     _FP=6R -> FP=0805 P=1/10W V=150V
 
-    _FP=2RK -> FP=0402 P=1/10W V=50V
-    _FP=3EK -> FP=0603 P=1/10W V=75V
-    _FP=6EN -> FP=0805 P=1/8W V=150V
-    _FP=8EN -> FP=1206 P=1/4W V=200V
-    _FP=14N -> FP=1210 P=1/2W V=200V
-    _FP=12N -> FP=1812 P=3/4W V=200V
-    _FP=12S -> FP=2010 P=3/4W V=200V
-    _FP=1TN -> FP=2512 P=1W V=200V
+    _FP=2RK -> FP=0402 P=1/10W V=50V TC=100ppm/K
+    _FP=3EK -> FP=0603 P=1/10W V=75V TC=100ppm/K
+    _FP=6EN -> FP=0805 P=1/8W V=150V TC=100ppm/K
+    _FP=8EN -> FP=1206 P=1/4W V=200V TC=100ppm/K
+    _FP=14N -> FP=1210 P=1/2W V=200V TC=100ppm/K
+    _FP=12N -> FP=1812 P=3/4W V=200V TC=100ppm/K
+    _FP=12S -> FP=2010 P=3/4W V=200V TC=100ppm/K
+    _FP=1TN -> FP=2512 P=1W V=200V TC=100ppm/K
 
     # http://industrial.panasonic.com/www-data/pdf/AOA0000/AOA0000CE3.pdf
 
-    _FP=2B -> FP=0402 P=1/8W
-    _FP2=3R -> FP=0603 P=1/10W		# override regular 3R
-    _FP=3B -> FP=0603 P=1/5W
-    _FP2=6R -> FP=0805 P=1/8W		# override regular 6R
-    _FP=6B -> FP=0805 P=1/4W
-    _FP=8R -> FP=1206 P=1/4W
-    _FP=8B -> FP=1206 P=1/3W
-    _FP=14R -> FP=1210 P=1/4W
-    _FP=14B -> FP=1210 P=1/2W
-    _FP=12R -> FP=1812 P=1/2W
-    _FP=12Z -> FP=2010 P=1/2W
-    _FP=1TR -> FP=2512 P=1W
+    # all TC are worst case
+    _FP=2B -> FP=0402 P=1/8W TC=300ppm/K
+    _FP2=3R -> FP=0603 P=1/10W TC=300ppm/K	# override regular 3R
+    _FP=3B -> FP=0603 P=1/5W TC=300ppm/K
+    _FP2=6R -> FP=0805 P=1/8W TC=250ppm/K	# override regular 6R
+    _FP=6B -> FP=0805 P=1/4W TC=250ppm/K
+    _FP=8R -> FP=1206 P=1/4W TC=250ppm/K
+    _FP=8B -> FP=1206 P=1/3W TC=250ppm/K
+    _FP=14R -> FP=1210 P=1/4W TC=200ppm/K
+    _FP=14B -> FP=1210 P=1/2W TC=200ppm/K
+    _FP=12R -> FP=1812 P=1/2W TC=200ppm/K
+    _FP=12Z -> FP=2010 P=1/2W TC=200ppm/K
+    _FP=1TR -> FP=2512 P=1W TC=200ppm/K
 
-    _FP=2BW -> FP=0402 P=1/8W
-    _FP=3BW -> FP=0603 P=1/4W
-    _FP=6BW -> FP=0805 P=1/3W
-    _FP=8BW -> FP=1206 P=1/2W
+    _FP=2BW -> FP=0402 P=1/8W TC=300ppm/K
+    _FP=3BW -> FP=0603 P=1/4W TC=250ppm/K	# TC is worst case
+    _FP=6BW -> FP=0805 P=1/3W TC=300ppm/K	# idem
+    _FP=8BW -> FP=1206 P=1/2W TC=200ppm/K	# idem
 
-    _FP=L03 -> FP=0603 P=1/10W
-    _FP=L06 -> FP=0805 P=1/8W
-    _FP=L08 -> FP=1206 P=1/4W
-    _FP=L14 -> FP=1210 P=1/3W
-    _FP=L12 -> FP=1812 P=1/2W
-    _FP=L1D -> FP=2010 P=1/2W
-    _FP=L1W -> FP=2512 P=1W
+    _FP=L03 -> FP=0603 P=1/10W TC=200ppm/K
+    _FP=L06 -> FP=0805 P=1/8W TC=100ppm/K
+    _FP=L08 -> FP=1206 P=1/4W TC=100ppm/K
+    _FP=L14 -> FP=1210 P=1/3W TC=300ppm/K	# TC is worst case
+    _FP=L12 -> FP=1812 P=1/2W TC=300ppm/K	# TC is worst case
+    _FP=L1D -> FP=2010 P=1/2W TC=300ppm/K	# TC is worst case
+    _FP=L1W -> FP=2512 P=1W TC=300ppm/K		# TC is worst case
 
     # http://industrial.panasonic.com/www-data/pdf/AOA0000/AOA0000CE4.pdf
 
-    _FP=P03 -> FP=0603 P=1/5W V=150V
-    _FP=P06 -> FP=0805 P=1/4W V=150V
-    _FP=P08 -> FP=1206 P=1/3W V=200V
-    _FP=P14 -> FP=1210 P=1/2W V=200V
+    # all TC are worst case
+    _FP=P03 -> FP=0603 P=1/5W V=150V TC=200ppm/K
+    _FP=P06 -> FP=0805 P=1/4W V=150V TC=300ppm/K
+    _FP=P08 -> FP=1206 P=1/3W V=200V TC=-200/+600ppm/K
+    _FP=P14 -> FP=1210 P=1/2W V=200V TC=-200/+600ppm/K
 
     # http://industrial.panasonic.com/www-data/pdf/AOA0000/AOA0000CE7.pdf
 
-    _FP=M03 -> FP=0603 P=1/4W
-    _FP=M1W -> FP=2512 P=1W
+    _FP=M03 -> FP=0603 P=1/4W TC=100ppm/K
+    _FP=M1W -> FP=2512 P=1W TC=450ppm/K	# TC is worst case (350+-100 ?!?)
 
     # L and M series don't use E12
 

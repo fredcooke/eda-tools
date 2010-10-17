@@ -10,6 +10,7 @@ R[0-9P]* {	# also handle RP...
     VAL=$R -> R=$VAL
 #    -> TOL=5%
     FN=$% -> TOL=$FN
+    FN=$ppm/K -> TC=$FN
 }
 
 RP[0-9]* {

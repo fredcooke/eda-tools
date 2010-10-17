@@ -9,12 +9,13 @@ RC* -> T=R {
 
     include ../../lib/tol.inc
 
-    FP=0100 -> FP=01005 P=1/32W V=15
-    FP=0201 -> P=1/20W V=25V
-    FP=0402 -> P=1/16W V=50V
-    FP=0603 -> P=1/10W V=50V
-    FP=0805 -> P=1/8W V=150V
-    FP=1206 -> P=1/4W V=200V
+    FP=0100 -> FP=01005
+    FP=01005 -> P=1/32W V=15 TC=250ppm/K
+    FP=0201 -> P=1/20W V=25V TC=-200/+350ppm/K	# TC is worst case
+    FP=0402 -> P=1/16W V=50V TC=200ppm/K	# TC is worst case
+    FP=0603 -> P=1/10W V=50V TC=200ppm/K	# TC is worst case
+    FP=0805 -> P=1/8W V=150V TC=300ppm/K	# TC is worst case
+    FP=1206 -> P=1/4W V=200V TC=300ppm/K	# TC is worst case
 
     # Adjust multipliers
 
