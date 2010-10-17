@@ -1,0 +1,25 @@
+#!/bin/sh
+
+DIST="##DIST##"
+MANU="##MANU##"
+
+base=`which "$0"`
+base=`dirname "$base"`
+[ "$base" = "${base#/}" ] && base=`pwd`/$base
+[ . -ef "$base" ] && base=.
+
+while [ "$1" ]; do
+    case "$1" in
+	equ)
+	    for n in $DIST; do echo "$base/dist/$n/db/all.equ"; done;;
+	inv)
+	    for n in $DIST; do echo "$base/dist/$n/db/all.inv"; done;;
+	dsc)
+	    for n in $DIST; do echo "$base/dist/$n/db/all.dsc"; done;;
+	chr)
+	    for n in $MANU; do echo "$base/manu/$n/$n.chr"; done;;
+    esac
+    shift
+done
+
+exit 0

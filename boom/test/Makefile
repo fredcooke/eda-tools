@@ -2,12 +2,10 @@ BOOM=PATH=/home/moko/svn.openmoko.org/trunk/eda/boom:../boom:$$PATH boom
 
 KITS = 1
 
-MANU = avx johanson murata panasonic stackpole tdk yageo
-
-EQU = ../dist/all.equ
-INV = ../dist/all.inv
-DSC = ../dist/all.dsc
-CHR = $(foreach m,$(MANU),../manu/$(m)/$(m).chr)
+EQU = $(shell ../boom-config equ)
+INV = $(shell ../boom-config inv)
+DSC = $(shell ../boom-config dsc)
+CHR = $(shell ../boom-config chr)
 
 
 .PHONY:		all show again spotless
