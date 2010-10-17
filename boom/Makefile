@@ -5,7 +5,9 @@ KITS = 1
 EQU = dist/all.equ
 INV = dist/all.inv
 DSC = dist/all.dsc
-CHR = manu/panasonic/panasonic.chr manu/stackpole/stackpole.chr \
+CHR = manu/murata/murata.chr \
+      manu/panasonic/panasonic.chr \
+      manu/stackpole/stackpole.chr \
       manu/yageo/yageo.chr
 
 DIST = dk
