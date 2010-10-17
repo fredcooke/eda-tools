@@ -16,22 +16,36 @@ RC* -> T=R {
     FP=0603 -> P=1/10W V=50V TC=200ppm/K	# TC is worst case
     FP=0805 -> P=1/8W V=150V TC=300ppm/K	# TC is worst case
     FP=1206 -> P=1/4W V=200V TC=300ppm/K	# TC is worst case
-
-    # Adjust multipliers
-
-    _R=(*)R(*)	->	_R=0$_R:1.$_R:2
-    _R=(*)K(*)	->	_R=$_R:1.${_R:2}k
-    _R=(*)M(*)	->	_R=$_R:1.${_R:2}M
-
-    # Remove leading and trailing zeroes
-
-    _R=0([0-9]*)		-> _R=$_R:1
-    _R=(*.[0-9]*)0([kM])	-> _R=$_R:1$_R:2
-    _R=(*).0([kM])		-> _R=$_R:1$_R:2
-    _R=(*.[0-9]*)0		-> _R=$_R:1
-    _R=(*).0			-> _R=$_R:1
-    _R=(*).([kM]|)		-> _R=$_R:1$_R:2
 }
+
+RT* -> T=R {
+    RT(????)([D])[RK]([DE])(07|10|13)(*)L* ->
+	FP=$REF:1 _TOL=$REF:2 _TC=$REF:3 _R=$REF:4
+
+    include ../../lib/rtol.inc
+
+    FP=0402 -> P=1/16W V=50V
+    FP=0603 -> P=1/10W V=75V
+    FP=0805 -> P=1/8W V=150V
+
+    _TC=D -> TC=25ppm/K
+    _TC=E -> TC=50ppm/K
+}
+
+# Adjust multipliers
+
+_R=(*)R(*)	->	_R=0$_R:1.$_R:2
+_R=(*)K(*)	->	_R=$_R:1.${_R:2}k
+_R=(*)M(*)	->	_R=$_R:1.${_R:2}M
+
+# Remove leading and trailing zeroes
+
+_R=0([0-9]*)		-> _R=$_R:1
+_R=(*.[0-9]*)0([kM])	-> _R=$_R:1$_R:2
+_R=(*).0([kM])		-> _R=$_R:1$_R:2
+_R=(*.[0-9]*)0		-> _R=$_R:1
+_R=(*).0			-> _R=$_R:1
+_R=(*).([kM]|)		-> _R=$_R:1$_R:2
 
 # http://www.yageo.com/documents/recent/UPY-GPHC_Y5V_6.3V-to-50V_5.pdf
 

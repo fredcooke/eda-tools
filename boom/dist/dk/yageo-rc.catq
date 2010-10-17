@@ -7,4 +7,5 @@ Series = RC0402
 Series = RC0603
 Series = RC0805
 Series = RC1206
+Series = RT
 Packaging = Cut Tape (CT)
