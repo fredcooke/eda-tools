@@ -14,8 +14,7 @@ DB = $(EQU) $(INV) $(DSC) $(CHR) \
 
 .PHONY:		all spotless tar count
 
-all:		show
-
+all:
 
 spotless:
 
