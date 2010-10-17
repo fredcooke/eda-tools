@@ -44,7 +44,7 @@ ERJ* -> T=R {
 	_FP=$REF:1 _TOL=$REF:3 _E12_1=$REF:3
 
     ERJ-(P0[368]|P14)(J)([R0-9][R0-9][0-9])* ->
-	_FP=$REF:1 _TOL=$REF:3 _E12_1=$REF:3
+	_FP=$REF:1 _TOL=$REF:2 _E12_1=$REF:3
     
     # http://industrial.panasonic.com/www-data/pdf/AOA0000/AOA0000CE7.pdf
 

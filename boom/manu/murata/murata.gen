@@ -6,6 +6,8 @@ GRM* -> T=C {
     GRM(??)?(??)(??)([0-9R][0-9R][0-9])(?)* ->
         _FP=$REF:1 _M=$REF:2 _V=$REF:3 _E12_P=$REF:4 _TOL=$REF:5
 
+    # page 2
+
     _FP=02 -> FP=01005
     _FP=03 -> FP=0201
     _FP=15 -> FP=0402
@@ -13,17 +15,29 @@ GRM* -> T=C {
     _FP=21 -> FP=0805
     _FP=31 -> FP=1206
     _FP=32 -> FP=1210
+    _FP=42 -> FP=1808
+    _FP=43 -> FP=1812
+    _FP=55 -> FP=2220
+
+    # page 3
+    #
+    # E4 from
+    # http://search.murata.co.jp/Ceramy/image/img/PDF/ENG/GRM188E41H103MA01.pdf
 
     _M=5C -> M=NP0
-    _M=7U -> M=U2J
     _M=6P -> M=P2H
     _M=6T -> M=T2H
-    _M=R7 -> M=X7R
-    _M=E7 -> M=X7U
-    _M=D7 -> M=X7T
+    _M=7U -> M=U2J
     _M=C8 -> M=X6S
+    _M=D7 -> M=X7T
     _M=D8 -> M=X6T
+    _M=E4 -> M=Z5U
+    _M=E7 -> M=X7U
+    _M=F5 -> M=Y5V
     _M=R6 -> M=X5R
+    _M=R7 -> M=X7R
+
+    # page 5
 
     _V=0G -> V=4V
     _V=0J -> V=6.3V
@@ -33,6 +47,10 @@ GRM* -> T=C {
     _V=YA -> V=35V
     _V=1H -> V=50V
     _V=2A -> V=100V
+    _V=2E -> V=250V
+    _V=2J -> V=630V
+    _V=3A -> V=1kV
+    _V=3F -> V=3.15kV
     
     include ../../lib/captol.inc
 }

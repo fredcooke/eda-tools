@@ -4,7 +4,7 @@ UC_NAME = $(shell echo $(NAME) | tr [a-z] [A-Z])
 
 EQU = ../../dist/all.equ
 
-.PHONY:		all test
+.PHONY:		all test sane
 
 all:		$(NAME).chr
 
@@ -13,3 +13,34 @@ $(NAME).chr:	$(EQU) $(NAME).gen
 
 test:
 		$(BOOM) gen2chr -n $(UC_NAME) $(EQU) $(NAME).gen
+
+LIMIT =		sed '1{x;s/.*/--- $(1) ---/p;x;};6{s/.*/.../;q;}'
+
+MALFORMED =	@grep '\<T=$(2)\>' $(NAME).chr | \
+		  grep -v '\<$(3)=[0-9][0-9.]*[fnpumkMG]\?$(4)\>' | \
+		  $(call LIMIT,$(1))
+
+ABSENT	=	@grep '\<T=$(2)\>' $(NAME).chr | grep -v '\<$(3)=' | \
+		  $(call LIMIT,$(1))
+
+sane:
+		@# general
+
+		$(call ABSENT,FP missing,.*,FP)
+
+		@# R
+
+		$(call MALFORMED,Malformed R=,R,R,R)
+		$(call ABSENT,T=R without ",R,P)
+		@# special case: 0R has no meaningful tolerance
+		@grep '\<T=R\>' $(NAME).chr | grep -v '\<R=0R\>' | \
+		  grep -v '\<TOL=' | $(call LIMIT,T=R without TOL)
+		@# V is optional
+		@# TC ?
+
+		@# C
+
+		$(call MALFORMED,Malformed C=,C,C,F)
+		$(call ABSENT,T=C without M,C,M)
+		$(call ABSENT,T=C without V,C,V)
+		$(call ABSENT,T=C without TOL,C,TOL)
