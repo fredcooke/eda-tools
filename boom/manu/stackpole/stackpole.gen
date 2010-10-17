@@ -6,8 +6,7 @@ RMCF* -> T=R {
     RMCF(????)(?)(?)([0-9R][0-9RKM][0-9RKM])* ->
 	FP=$REF:1 _TOL=$REF:2 _R=$REF:4
 
-    _TOL=F -> TOL=1%
-    _TOL=J -> TOL=5%
+    include ../../lib/tol.inc
 
     FP=0201 -> P=1/20W V=25V
     FP=0402 -> P=1/16W V=50V

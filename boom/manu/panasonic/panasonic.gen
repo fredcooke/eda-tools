@@ -141,11 +141,7 @@ ERJ* -> T=R {
     _LOW_R=(??)M -> _E12_1=R0${_LOW_R:1}
     _LOW_R=(??)C -> _E12_1=R${_LOW_R:1}
 
-    _TOL=D -> TOL=0.5%
-    _TOL=F -> TOL=1%
-    _TOL=G -> TOL=2%
-    _TOL=J -> TOL=5%
-    _TOL=K -> TOL=10%
+    include ../../lib/tol.inc
 }
 
 include ../../lib/e12.inc

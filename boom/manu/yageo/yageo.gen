@@ -8,8 +8,7 @@ RC* -> T=R {
     RC(????)([FJ])[RK]-(07|10|13)(*)L* ->
 	FP=$REF:1 _TOL=$REF:2 _R=$REF:4
 
-    _TOL=F -> TOL=1%
-    _TOL=J -> TOL=5%
+    include ../../lib/tol.inc
 
     FP=0100 -> FP=01005 P=1/32W V=15
     FP=0201 -> P=1/20W V=25V
@@ -17,9 +16,6 @@ RC* -> T=R {
     FP=0603 -> P=1/10W V=50V
     FP=0805 -> P=1/8W V=150V
     FP=1206 -> P=1/4W V=200V
-
-    _TOL=F -> TOL=1%
-    _TOL=J -> TOL=5%
 }
 
 # Adjust multipliers
