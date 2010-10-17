@@ -1,0 +1,15 @@
+BOOM=PATH=/home/moko/svn.openmoko.org/trunk/eda/boom:../boom:$$PATH boom
+
+UC_NAME = $(shell echo $(NAME) | tr [a-z] [A-Z])
+
+EQU = ../../dist/all.equ
+
+.PHONY:		all test
+
+all:		$(NAME).chr
+
+$(NAME).chr:	$(EQU) $(NAME).gen
+		$(BOOM) gen2chr $(UC_NAME) $^ >$@ || { rm -rf $@; exit 1; }
+
+test:
+		$(BOOM) gen2chr -n $(UC_NAME) $(EQU) $(NAME).gen
