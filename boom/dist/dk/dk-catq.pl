@@ -41,6 +41,8 @@ while (<>) {
 $id = shift @q;
 $key = shift @q;
 $cat = shift @q;
+($topcat, $cat) = ($`, $') if $cat =~ m|/|;
+
 for (@q) {
 	die "not a field=value pair: \"$_\"" unless /\s*=\s*/;
 	push(@{ $f{$`} }, $');
@@ -57,6 +59,9 @@ $url = $URL.$key;
 if ($q[1] =~ /<title>Digi-Key</) {
 	undef $found;
 	for (@q) {
+		$on = $1 eq $topcat if
+		    defined $topcat && /catfiltertopitem>\s*(.*?)\s*</;
+		next if defined $topcat && !$on;
 		next unless /Cat=(\d+)[&"].*?>\s*(.*?)\s*[(<]/;
 		next if $2 ne $cat;
 		$found = $1;
@@ -98,7 +103,7 @@ for (keys %f) {
 	die "no such field: $_" unless defined $field;
 	for $v (@{ $f{$_} }) {
 		$value = $val{$_}{$v};
-		die "no such value: \"$_\"=\"$f{$_}\"" unless defined $value;
+		die "no such value: \"$_\"=\"$v\"" unless defined $value;
 		$url .= "&$field=$value";
 	}
 }
