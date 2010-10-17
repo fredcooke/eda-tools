@@ -6,7 +6,7 @@
 -> T=unknown
 
 R[0-9P]* {	# also handle RP...
-    -> T=R
+    -> T=R R=required
     VAL=$R -> R=$VAL
 #    -> TOL=5%
     FN=$% -> TOL=$FN
@@ -18,9 +18,12 @@ RP[0-9]* {
 }
 
 C[0-9]* {
-    -> T=C
+    -> T=C C=required
     VAL=*F -> C=$VAL
     FN=*V -> V=>=$FN
+    FN=$% -> TOL=$FN
+    FN=(NP0|[XYZ][456789][ABCDEFPRSTUV]) -> M=$FN
+    FN=(NP0|[XYZ][456789][ABCDEFPRSTUV])/(*) -> M=$FN:1 X=$FN:2
 }
 
 L[0-9]* {
