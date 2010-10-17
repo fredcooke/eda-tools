@@ -9,6 +9,7 @@
 print "eeschema (whatever) >> some date\n\n";
 print "#Cmp ( order = Reference )\n";
 while (<>) {
+	last if /^#END\b/;
 	s/#.*//;
 	next if /^\s*$/;
 	@a = split(/\s+/, $_);
