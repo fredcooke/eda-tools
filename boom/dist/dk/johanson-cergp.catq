@@ -2,4 +2,7 @@ JOHANSON
 johanson
 Capacitors/Ceramic
 Series = -
+Series = E
+Series = L
+Series = S
 Packaging = Cut Tape (CT)

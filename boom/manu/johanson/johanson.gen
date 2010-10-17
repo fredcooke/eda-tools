@@ -42,8 +42,8 @@
     _FP=S48 -> FP=2225	# MMLC says 2225, High-Q says 2525
     _FP=S58 -> FP=3838
 
-    _M=S -> M=NP0 X=HQ	# "ultra-high" Q
-    _M=L -> M=NP0 X=HQ	# "mid-high" Q
+    _M=S -> M=NP0 X=RF	# "ultra-high" Q
+    _M=L -> M=NP0 X=RF	# "mid-high" Q
     _M=E -> M=NP0 X=RF	# "excellent high" Q, RF (microwave)
     _M=W -> M=X7R	# no mention of Q
     _M=N -> M=NP0
