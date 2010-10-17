@@ -4,7 +4,7 @@ PARTS = avx-cersmt murata-grm panasonic-erj stackpole-rmcf \
 
 .SECONDARY:		# prevent *.cache from being automatically deleted
 
-.PHONY:			all clean rebuild update spotless
+.PHONY:			all clean rebuild update spotless count
 
 all:			$(MASTER) \
 			  $(PARTS:%=db/%.equ) \
@@ -74,3 +74,6 @@ update:			rebuild
 
 spotless:		update
 			rm -f $(PARTS:%=db/%.equ)
+
+count:
+			grep DIGI-KEY db/*.equ | wc -l
