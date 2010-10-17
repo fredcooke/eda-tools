@@ -2,14 +2,15 @@ BOOM=PATH=/home/moko/svn.openmoko.org/trunk/eda/boom:../boom:$$PATH boom
 
 KITS = 1
 
-DIST = dk
-EQU = $(DIST:%=dist/%/db/all.equ)
-INV = $(DIST:%=dist/%/db/all.inv)
-DSC = $(DIST:%=dist/%/db/all.dsc)
+EQU = dist/all.equ
+INV = dist/all.inv
+DSC = dist/all.dsc
 CHR = manu/panasonic/panasonic.chr manu/stackpole/stackpole.chr \
       manu/yageo/yageo.chr
 
-DB = $(CHR) \
+DIST = dk
+
+DB = $(EQU) $(INV) $(DSC) $(CHR) \
     $(DIST:%=dist/%/db/*.equ) \
     $(DIST:%=dist/%/db/*.inv) \
     $(DIST:%=dist/%/db/*.dsc)
@@ -40,4 +41,3 @@ spotless:
 
 tar:
 		tar cfj boom-db.tar.bz2 $(DB)
-		
