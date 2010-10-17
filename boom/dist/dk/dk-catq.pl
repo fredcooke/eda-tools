@@ -57,7 +57,7 @@ $url = $URL.$key;
 if ($q[1] =~ /<title>Digi-Key</) {
 	undef $found;
 	for (@q) {
-		next unless /Cat=(\d+)[&"].*?>\s*([^,]*?)\s*</;
+		next unless /Cat=(\d+)[&"].*?>\s*(.*?)\s*[(<]/;
 		next if $2 ne $cat;
 		$found = $1;
 		last;
