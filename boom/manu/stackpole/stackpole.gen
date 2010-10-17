@@ -3,7 +3,7 @@
 # http://www.seielect.com/Catalog/SEI-RMC.pdf
 
 RMCF* -> T=R {
-    RMCF(????)(?)(?)([0-9R][0-9RKM][0-9RKM])* ->
+    RMCF(????)(?)(?)([0-9R][0-9RKM][0-9RKM][0-9RKM]) ->
 	FP=$REF:1 _TOL=$REF:2 _R=$REF:4
 
     include ../../lib/tol.inc
@@ -17,6 +17,23 @@ RMCF* -> T=R {
     FP=1210 -> P=1/3W V=200V TC=400ppm/K
     FP=2010 -> P=3/4W V=200V TC=500ppm/K
     FP=2512 -> P=1W V=200V TC=500ppm/K
+}
+
+# http://www.seielect.com/catalog/SEI-RNCP.pdf
+#
+# Updated to new numbers with a bit of guesswork.
+#
+
+RNCP* -> T=R {
+    RNCP(????)(?)(??)([0-9R][0-9RKM][0-9RKM][0-9RKM]) ->
+	FP=$REF:1 _TOL=$REF:2 _R=$REF:4
+
+    include ../../lib/tol.inc
+
+    FP=0402 -> P=1/10W V=50V TC=100ppm/K
+    FP=0603 -> P=1/8W V=150V TC=100ppm/K
+    FP=0805 -> P=1/4W V=200V TC=100ppm/K
+    FP=1206 -> P=1/2W V=200V TC=100ppm/K
 }
 
 

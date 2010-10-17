@@ -9,6 +9,8 @@
 # Comment lines and empty lines are ignored.
 #
 STACKPOLE
-rmcf
+stackpole
 Chip Resistor - Surface Mount
+Series = RMC
+Series = RNCP
 Packaging = Cut Tape (CT)
