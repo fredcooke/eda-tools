@@ -1,7 +1,8 @@
 #!/usr/bin/perl
 
 $BASE = "http://search.digikey.com/scripts/DkSearch/dksus.dll";
-$QMOD = "stock=1&pbfree=1&rohs=1";
+#$QMOD = "stock=1&pbfree=1&rohs=1";
+$QMOD = "pbfree=1&rohs=1";
 $URL = "$BASE?$QMOD&k=";
 
 $DEBUG = 0;
