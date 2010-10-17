@@ -63,6 +63,10 @@ if ($mode eq "query") {
 	next if /^\s*$/;
 	next if /^\s/;
 	s/\s.*//;
+
+	$n++;
+	print STDERR "$n\r" unless $n % 100;
+
 	next if $old =~ m#align=right>Digi-Key Part Number</th><td>$_</td#;
 	push(@pn, $_);
 	&flush if @pn > 1000;
