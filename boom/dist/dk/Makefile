@@ -1,5 +1,6 @@
 MASTER = db/all.equ db/all.dsc db/all.inv
-PARTS = murata-grm panasonic-erj stackpole-rmcf tdk-c yageo-cc yageo-rc
+PARTS = avx-cersmt murata-grm panasonic-erj stackpole-rmcf \
+        tdk-c yageo-cc yageo-rc
 
 .SECONDARY:		# prevent *.cache from being automatically deleted
 
