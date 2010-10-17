@@ -16,7 +16,7 @@ DB = $(EQU) $(INV) $(DSC) $(CHR) \
     $(DIST:%=dist/%/db/*.dsc)
 
 
-.PHONY:		all show again spotless tar
+.PHONY:		all show again spotless tar count
 
 all:		show
 
@@ -41,3 +41,6 @@ spotless:
 
 tar:
 		tar cfj boom-db.tar.bz2 $(DB)
+
+count:
+		perl ./count.pl $(CHR)
