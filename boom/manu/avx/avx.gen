@@ -22,7 +22,7 @@
     _M=L -> M=X8L
     _M=Z -> M=X7S
 
-    include ../../lib/captol.inc
+    include ../../lib/ctol.inc
 
     _V=4 -> V=4V
     _V=6 -> V=6.3V

@@ -30,7 +30,7 @@ C* -> T=C {
     _FP=4532 -> FP=1812
     _FP=5750 -> FP=2220
 
-    include ../../lib/captol.inc
+    include ../../lib/ctol.inc
 
     _V=0G -> V=4V
     _V=0J -> V=6.3V

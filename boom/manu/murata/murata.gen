@@ -52,7 +52,7 @@ GRM* -> T=C {
     _V=3A -> V=1kV
     _V=3F -> V=3.15kV
     
-    include ../../lib/captol.inc
+    include ../../lib/ctol.inc
 }
 
 include ../../lib/e12.inc

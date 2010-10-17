@@ -6,7 +6,7 @@ RMCF* -> T=R {
     RMCF(????)(?)(?)([0-9R][0-9RKM][0-9RKM][0-9RKM]) ->
 	FP=$REF:1 _TOL=$REF:2 _R=$REF:4
 
-    include ../../lib/tol.inc
+    include ../../lib/rtol.inc
 
     # all TC are worst case
     FP=0201 -> P=1/20W V=25V TC=600ppm/K
@@ -28,7 +28,7 @@ RNCP* -> T=R {
     RNCP(????)(?)(??)([0-9R][0-9RKM][0-9RKM][0-9RKM]) ->
 	FP=$REF:1 _TOL=$REF:2 _R=$REF:4
 
-    include ../../lib/tol.inc
+    include ../../lib/rtol.inc
 
     FP=0402 -> P=1/10W V=50V TC=100ppm/K
     FP=0603 -> P=1/8W V=150V TC=100ppm/K

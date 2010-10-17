@@ -145,7 +145,7 @@ ERJ* -> T=R {
     _LOW_R=(??)M -> _E12_1=R0${_LOW_R:1}
     _LOW_R=(??)C -> _E12_1=R${_LOW_R:1}
 
-    include ../../lib/tol.inc
+    include ../../lib/rtol.inc
 }
 
 include ../../lib/e12.inc
