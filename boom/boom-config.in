@@ -1,7 +1,17 @@
 #!/bin/sh
 
+# ##WARN##
+
 DIST="##DIST##"
 MANU="##MANU##"
+
+
+usage()
+{
+    echo "usage: $0 equ|inv|dsc|chr ..." 1>&2
+    exit 1
+}
+
 
 base=`which "$0"`
 base=`dirname "$base"`
@@ -18,6 +28,8 @@ while [ "$1" ]; do
 	    for n in $DIST; do echo "$base/dist/$n/db/all.dsc"; done;;
 	chr)
 	    for n in $MANU; do echo "$base/manu/$n/$n.chr"; done;;
+	*)
+	    usage;;
     esac
     shift
 done

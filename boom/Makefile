@@ -14,7 +14,8 @@ DB = $(EQU) $(INV) $(DSC) $(CHR)
 all:		boom-config
 
 boom-config:    boom-config.in Makefile
-		sed 's/##DIST##/$(DIST)/;s/##MANU##/$(MANU)/' boom-config.in \
+		sed -e 's/##WARN##/*** MACHINE-GENERATED. DO NOT EDIT ! ***/' \
+		  -e 's/##DIST##/$(DIST)/;s/##MANU##/$(MANU)/' boom-config.in \
 		  >$@ || { rm -f $@; exit 1; }
 		chmod 755 boom-config
 
