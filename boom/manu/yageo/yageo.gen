@@ -35,7 +35,7 @@ RC* -> T=R {
 # http://www.yageo.com/documents/recent/UPY-GPHC_Y5V_6.3V-to-50V_5.pdf
 
 CC* -> T=C {
-    CC(????)(?)?(???)(?)??([0-9][0-9R][0-9]) ->
+    CC(????)(?)?(???)(?)??([0-9R][0-9R][0-9]) ->
       FP=$REF:1 _TOL=$REF:2 M=$REF:3 _V=$REF:4 _E12_P=$REF:5
 
     include ../../lib/captol.inc
