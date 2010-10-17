@@ -1,0 +1,59 @@
+#GEN
+
+# http://www.johansontechnology.com/images/stories/rfcaps/mlhqcaps/jti_high-q-mlcc_2008-11.pdf
+# http://www.johansondielectrics.com/surface-mount-products/surface-mount-mlc-capacitors/part-number-breakdown.html
+
+* -> T=C {
+    (???)([RS][0-9][0-9])([SLEWNWXZY])([0-9][0-9R][0-9])(?)* ->
+	_V=$REF:1 _FP=$REF:2 _M=$REF:3 _E12_P=$REF:4 _TOL=$REF:5
+
+    _V=6R3 -> V=6.3V
+    _V=100 -> V=10V
+    _V=160 -> V=16V
+    _V=250 -> V=25V
+    _V=500 -> V=50V
+    _V=101 -> V=100V
+    _V=201 -> V=200V
+    _V=251 -> V=250V
+    _V=501 -> V=500V
+    _V=631 -> V=630V
+    _V=102 -> V=1000V
+    _V=152 -> V=1500V
+    _V=202 -> V=2000V
+    _V=252 -> V=2500V
+    _V=302 -> V=3000V
+    _V=362 -> V=3600V
+    _V=402 -> V=4000V
+    _V=502 -> V=5000V
+    _V=722 -> V=7200V
+
+    _FP=R03 -> FP=01005
+    _FP=R05 -> FP=0201
+    _FP=R07 -> FP=0402
+    _FP=R14 -> FP=0603
+    _FP=R15 -> FP=0805
+    _FP=S42 -> FP=1111
+    _FP=R18 -> FP=1206
+    _FP=S41 -> FP=1210
+    _FP=R29 -> FP=1808
+    _FP=S43 -> FP=1812
+    _FP=S47 -> FP=2220
+    _FP=S49 -> FP=1825
+    _FP=S48 -> FP=2225	# MMLC says 2225, High-Q says 2525
+    _FP=S58 -> FP=3838
+
+    _M=S -> M=NP0 X=HQ	# "ultra-high" Q
+    _M=L -> M=NP0 X=HQ	# "mid-high" Q
+    _M=E -> M=NP0 X=RF	# "excellent high" Q, RF (microwave)
+    _M=W -> M=X7R	# no mention of Q
+    _M=N -> M=NP0
+    _M=X -> M=X5R
+    _M=Z -> M=Z5U
+    _M=Y -> M=Y5V
+
+    include ../../lib/captol.inc
+}
+
+include ../../lib/e12.inc
+
+T=C -> C=${_E12}F !
