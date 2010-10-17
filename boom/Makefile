@@ -2,15 +2,13 @@ BOOM=PATH=/home/moko/svn.openmoko.org/trunk/eda/boom:../boom:$$PATH boom
 
 KITS = 1
 
+DIST = dk
+MANU = murata panasonic stackpole yageo
+
 EQU = dist/all.equ
 INV = dist/all.inv
 DSC = dist/all.dsc
-CHR = manu/murata/murata.chr \
-      manu/panasonic/panasonic.chr \
-      manu/stackpole/stackpole.chr \
-      manu/yageo/yageo.chr
-
-DIST = dk
+CHR = $(foreach m,$(MANU),manu/$(m)/$(m).chr)
 
 DB = $(EQU) $(INV) $(DSC) $(CHR) \
     $(DIST:%=dist/%/db/*.equ) \
