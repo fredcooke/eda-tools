@@ -1,5 +1,5 @@
 MASTER = db/all.equ db/all.dsc db/all.inv
-PARTS = panasonic-erj stackpole-rmcf yageo-rc
+PARTS = panasonic-erj stackpole-rmcf yageo-cc yageo-rc
 
 .SECONDARY:		# prevent *.cache from being automatically deleted
 
