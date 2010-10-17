@@ -2,7 +2,7 @@ BOOM=PATH=/home/moko/svn.openmoko.org/trunk/eda/boom:../boom:$$PATH boom
 
 UC_NAME = $(shell echo $(NAME) | tr [a-z] [A-Z])
 
-EQU = ../../dist/all.equ
+EQU = $(shell ../../boom-config equ)
 
 .PHONY:		all test sane
 
