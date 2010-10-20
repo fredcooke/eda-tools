@@ -1,3 +1,101 @@
+schhist - Graphical revision history of schematics
+==================================================
+
+The schhist system walks the git revision history of a KiCad project
+and produces Web-browseable graphical differences of the schematics.
+
+It does so by checking out each revision from git, sanitizing the
+project to preven problems what would cause eeschema to stop and
+display an error dialog, using eeschema to "plot" the project to
+Postscript, making some small adjustments (position, line width) to
+the Postscript, converting it to PPM with Ghostscript, making a
+pixel-wise comparison of revisions, and arranging the resulting
+images in an HTML page. Further more, sub-pages with magnifications
+and PDF files are generated.
+
+
+This work is distributed under the terms of the GNU GENERAL PUBLIC
+LICENSE, Version 2:
+
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2 of the License, or
+  (at your option) any later version.
+
+For your convenience, a copy of the complete license has been included
+in the file COPYING.GPLv2.
+
+
+schhist2web
+-----------
+
+Web-browseable graphical revision history of schematics 
+...
+
+
+subschname2file
+---------------
+
+Translate a subsheet's name to the sheet file's name
+...
+
+
+sanitize-profile
+----------------
+
+Remove items from a KiCad profile that may cause an upset
+...
+
+
+sanitize-schem
+--------------
+
+Remove items from KiCad schematics that may cause an upset
+...
+
+
+gitsch2ps
+---------
+
+Generate PS files for KiCad schematics in git
+...
+
+
+normalizeschps
+--------------
+
+Normalize eeschema Postscript
+...
+
+
+ppmdiff
+-------
+
+Mark differences in two PPM files
+...
+
+
+schps2pdf
+---------
+
+Generate PDF files from Eeschema Postscript 
+...
+
+
+schps2ppm
+---------
+
+Generate PPM files from normalized Eeschema Postscript
+...
+
+
+gitenealogy
+-----------
+
+Trace the ancestry of a file in git across renames
+...
+
+
 gitwhoareyounow
 ---------------
 
