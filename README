@@ -1,0 +1,14 @@
+eda-tools
+=========
+
+This is a collection of utilities for Electronic Design Automation:
+
+- boom: a BOM-processing system. Note that the core scripts of BOOM are
+  at http://svn.openmoko.org/trunk/eda/boom. The material here builds
+  upon them.
+
+- dsv: data sheet viewer. A simple but efficient system for caching data
+  sheets and displaying them with xpdf from command line.
+
+- schhist: a system to walk a KiCad project's git revision history and
+  generating Web-browseable graphical differences of the schematics.
