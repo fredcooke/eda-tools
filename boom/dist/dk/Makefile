@@ -37,7 +37,7 @@ db/all.dsc:		Makefile
 			for n in $(PARTS); do echo "include $$n.dsc"; done >$@
 
 db/%.equ:		%.catq
-			perl ./dk-catq.pl $< >$@ || { rm -rf $@; exit 1; }
+			perl ./dk-catq.pl $< >$@ || { rm -f $@; exit 1; }
 
 db/%.inv:		db/%.cache
 			perl ./dk-db.pl inv $< >$@ || { rm -f $@; exit 1; }
