@@ -9,7 +9,7 @@ EQU = $(shell ../../boom-config equ)
 all:		$(NAME).chr
 
 $(NAME).chr:	$(EQU) $(NAME).gen
-		$(BOOM) gen2chr $(UC_NAME) $^ >$@ || { rm -rf $@; exit 1; }
+		$(BOOM) gen2chr $(UC_NAME) $^ >$@ || { rm -f $@; exit 1; }
 
 test:
 		$(BOOM) gen2chr -n $(UC_NAME) $(EQU) $(NAME).gen
