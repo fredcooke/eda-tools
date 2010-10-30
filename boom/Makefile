@@ -6,12 +6,19 @@ INV = $(shell ./boom-config inv)
 DSC = $(shell ./boom-config dsc)
 CHR = $(shell ./boom-config chr)
 
+DIRS = $(DIST:%=dist/%) $(MANU:%=manu/%)
+
 DB = $(EQU) $(INV) $(DSC) $(CHR)
 
 
-.PHONY:		all spotless tar count
+.PHONY:		all db spotless tar count $(DIRS)
 
 all:		boom-config
+
+db:		boom-config $(DIRS)
+
+$(DIRS):
+		$(MAKE) -C $@
 
 boom-config:    boom-config.in Makefile
 		sed -e 's/##WARN##/*** MACHINE-GENERATED. DO NOT EDIT ! ***/' \
