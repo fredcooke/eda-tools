@@ -10,8 +10,11 @@ This is a collection of utilities for Electronic Design Automation:
 - dsv: data sheet viewer. A simple but efficient system for caching data
   sheets and displaying them with xpdf from command line.
 
+- fpd2pdf: convert a set of footprints (made with FPED) into a
+  reviewer-friendly PDF.
+
 - schhist: a system to walk a KiCad project's git revision history and
   generating Web-browseable graphical differences of the schematics.
 
 Each utility can have its own licensing terms. They're specified in the
-respective directory.
+respective directory or in the file itself.
