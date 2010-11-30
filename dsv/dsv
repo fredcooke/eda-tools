@@ -134,7 +134,7 @@ search()
     while true; do
 	if [ -d $DSV_DIR ]; then
 	    if [ -r "$DSV_DIR/dsv-$1" ]; then
-		file=`cat $DSV_DIR/dsv-$1`
+		file=`cat "$DSV_DIR/dsv-$1"`
 		if [ ! -r "$DSV_DIR/$file" ]; then
 		    echo "$1 -> $file: does not exist" 2>&1
 		    exit 1
