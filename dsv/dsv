@@ -130,7 +130,7 @@ list()
 {
      while true; do
 	if [ -d $DSV_DIR ]; then
-	    ls -1 $DSV_DIR | sed 's/^dsv-//p;d' | sed 's|%2F|/|g;s/%25/%/g'
+	    ls -b -1 $DSV_DIR | sed 's/^dsv-//p;d' | sed 's|%2F|/|g;s/%25/%/g'
 	fi
 	up || break
      done | sort | uniq | column
