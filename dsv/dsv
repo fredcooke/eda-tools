@@ -49,19 +49,20 @@ up()
 
 flush()
 {
-    [ -z "$name" ] && return
+    eval nm=$name
+    [ -z "$nm" ] && return
     if [ -z "$url" ]; then
-	echo "$name: no URL" 2>&1
+	echo "$nm: no URL" 2>&1
 	exit 1
     fi
-    ds=$name-`basename "$url"`
+    ds=$nm-`basename "$url"`
     mkdir -p $DSV_DIR
     if [ ! -r "$DSV_DIR/$ds" ]; then
 	wget -nv -O "$DSV_DIR/$ds" "$url"
 	# @@@ should handle error
     fi
-    for n in $name $alias; do
-	echo "$ds" >$DSV_DIR/dsv-$n
+    eval for n in $name $alias\; do \
+	echo '"$ds"' '>$DSV_DIR/dsv-$n'\; \
     done
     name=
     alias=
@@ -73,8 +74,8 @@ set_value()
 {
     case "$tag" in
 	N:|n:)	flush
-		name=$value;;
-	A:|a:)	alias="$alias $value";;
+		name="\"$value\"";;
+	A:|a:)	alias="$alias \"$value\"";;
 	D:|d:)	url=$value;;
 	"")
 		;;	# first iteration
