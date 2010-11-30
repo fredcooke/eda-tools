@@ -50,6 +50,7 @@ up()
 flush()
 {
     eval nm=$name
+    nm=`echo "$nm" | sed 's/%/%25/g;s|/|%2F|g'`
     [ -z "$nm" ] && return
     if [ -z "$url" ]; then
 	echo "$nm: no URL" 2>&1
@@ -62,7 +63,8 @@ flush()
 	# @@@ should handle error
     fi
     eval for n in $name $alias\; do \
-	echo '"$ds"' '>$DSV_DIR/dsv-$n'\; \
+        'nm=`echo "$n" | sed "s/%/%25/g;s|/|%2F|g"`;' \
+	echo '"$ds"' '>$DSV_DIR/dsv-$nm'\; \
     done
     name=
     alias=
@@ -122,7 +124,7 @@ list()
 {
      while true; do
 	if [ -d $DSV_DIR ]; then
-	    ls -1 $DSV_DIR | sed 's/^dsv-//p;d'
+	    ls -1 $DSV_DIR | sed 's/^dsv-//p;d' | sed 's|%2F|/|g;s/%25/%/g'
 	fi
 	up || break
      done | sort | uniq | column
@@ -133,8 +135,9 @@ search()
 {
     while true; do
 	if [ -d $DSV_DIR ]; then
-	    if [ -r "$DSV_DIR/dsv-$1" ]; then
-		file=`cat "$DSV_DIR/dsv-$1"`
+    	    name=`echo "$1" | sed 's/%/%25/g;s|/|%2F|g'`
+	    if [ -r "$DSV_DIR/dsv-$name" ]; then
+		file=`cat "$DSV_DIR/dsv-$name"`
 		if [ ! -r "$DSV_DIR/$file" ]; then
 		    echo "$1 -> $file: does not exist" 2>&1
 		    exit 1
