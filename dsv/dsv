@@ -102,20 +102,26 @@ setup()
 	    echo "$n: not found" 2>&1
 	    continue
 	fi
-        while read line; do
-	    [ "$line" = "${line###}" ] || continue
-	    tmp=`echo "$line" | awk '/^[^\t ]/ { print $1 }'`
-	    tail=`echo "$line" | sed 's/^[^\t ]*[\t ]*//'`
-	    if [ -z "$tmp" ]; then
-		[ -z "$tail" ] || value="$value $tail"
-	    else
-		set_value
-		tag=$tmp
-		value=$tail
-	    fi
-	done <"$n"
-	set_value
-	eof
+	#
+	# "read" doesn't recognize lines that don't end with a newline.
+	# The cat-sed hack below works around this problems.
+	#
+	cat -E "$n" | sed 's/[^$]$/&\n/;s/$$//' | {
+	    while read line; do
+		[ "$line" = "${line###}" ] || continue
+		tmp=`echo "$line" | awk '/^[^\t ]/ { print $1 }'`
+		tail=`echo "$line" | sed 's/^[^\t ]*[\t ]*//'`
+		if [ -z "$tmp" ]; then
+		    [ -z "$tail" ] || value="$value $tail"
+		else
+		    set_value
+		    tag=$tmp
+		    value=$tail
+		fi
+	    done
+	    set_value
+	    eof
+	}
     done
 }
 
