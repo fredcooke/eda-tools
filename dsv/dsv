@@ -40,9 +40,9 @@ usage()
 
 up()
 {
-    old="`pwd`"
+    old=`pwd`
     cd ..
-    new="`pwd`"
+    new=`pwd`
     [ "$old" != "$new" ]
 }
 
@@ -54,7 +54,7 @@ flush()
 	echo "$name: no URL" 2>&1
 	exit 1
     fi
-    ds="$name-`basename "$url"`"
+    ds=$name-`basename "$url"`
     mkdir -p $DSV_DIR
     if [ ! -r "$DSV_DIR/$ds" ]; then
 	wget -nv -O "$DSV_DIR/$ds" "$url"
@@ -73,9 +73,9 @@ set_value()
 {
     case "$tag" in
 	N:|n:)	flush
-		name="$value";;
+		name=$value;;
 	A:|a:)	alias="$alias $value";;
-	D:|d:)	url="$value";;
+	D:|d:)	url=$value;;
 	"")
 		;;	# first iteration
 	*)	echo "unrecognized tag \"$tag\"" 2>&1
@@ -102,13 +102,13 @@ setup()
         while read line; do
 	    [ "$line" = "${line###}" ] || continue
 	    tmp=`echo "$line" | awk '/^[^\t ]/ { print $1 }'`
-	    tail="`echo "$line" | sed 's/^[^\t ]*[\t ]*//'`"
+	    tail=`echo "$line" | sed 's/^[^\t ]*[\t ]*//'`
 	    if [ -z "$tmp" ]; then
 		[ -z "$tail" ] || value="$value $tail"
 	    else
 		set_value
 		tag=$tmp
-		value="$tail"
+		value=$tail
 	    fi
 	done <"$n"
 	set_value
@@ -133,7 +133,7 @@ search()
     while true; do
 	if [ -d $DSV_DIR ]; then
 	    if [ -r "$DSV_DIR/dsv-$1" ]; then
-		file="`cat $DSV_DIR/dsv-$1`"
+		file=`cat $DSV_DIR/dsv-$1`
 		if [ ! -r "$DSV_DIR/$file" ]; then
 		    echo "$1 -> $file: does not exist" 2>&1
 		    exit 1
