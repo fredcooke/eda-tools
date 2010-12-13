@@ -148,7 +148,7 @@ search()
 		    echo "$1 -> $file: does not exist" 2>&1
 		    exit 1
 		fi
-		xpdf "$DSV_DIR/$file"
+		${DSV_PDFVIEWER:-xpdf} "$DSV_DIR/$file"
 		exit
 	    fi
 	fi
