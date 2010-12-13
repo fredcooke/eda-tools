@@ -33,7 +33,7 @@ usage()
     echo "usage: $0 <component>" 2>&1
     echo "       $0 help" 2>&1
     echo "       $0 [ls]" 2>&1
-    echo "       $0 setup <info-file> .." 2>&1
+    echo "       $0 setup <info-file> ..." 2>&1
     exit 1
 }
 
@@ -164,6 +164,7 @@ case "$1" in
     help|-*)	usage;;
     ""|ls)	list;;
     setup)	shift
+		[ "$1" ] || usage
 		setup "$@";;
     *)		search "$@";;
 esac
