@@ -1,5 +1,25 @@
+First build
+-----------
+
 bzr checkout -r 2448 lp:kicad kicad.bzr
 cd kicad.bzr
+ln -s wherever/eda-tools/kicad-patches patches
+quilt push -a
+cmake .
+make -j 5
+make install
+
+
+Rebuild with new/changed patches
+--------------------------------
+
+# update the patches
+git pull
+
+# rebuild KiCad
+cd wherever/kicad.bzr
+quilt pop -af
+quilt push -a
 cmake .
 make -j 5
 make install
