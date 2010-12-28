@@ -36,6 +36,17 @@ diff -ruN kicad.orig/common/confirm.cpp kicad/common/confirm.cpp
      dialog = new WinEDA_MessageDialog( parent, text, _( "Info:" ),
                                         wxOK | wxICON_INFORMATION, displaytime );
  
+diff -ruN kicad.orig/common/edaappl.cpp kicad/common/edaappl.cpp
+--- kicad.orig/common/edaappl.cpp	2010-10-19 08:48:07.000000000 +0000
++++ kicad/common/edaappl.cpp	2010-12-28 08:57:27.929470001 +0000
+@@ -272,6 +272,7 @@
+     wxString EnvLang;
+ 
+     m_Id = aId;
++if (!g_scripted)
+     m_Checker = new wxSingleInstanceChecker( aName.Lower() + wxT( "-" ) +
+                                             wxGetUserId() );
+ 
 diff -ruN kicad.orig/include/common.h kicad/include/common.h
 --- kicad.orig/include/common.h	2010-10-19 08:48:07.000000000 +0000
 +++ kicad/include/common.h	2010-12-22 18:47:54.974932729 +0000
@@ -168,7 +179,7 @@ diff -ruN kicad.orig/pcbnew/gendrill.cpp kicad/pcbnew/gendrill.cpp
                  break;
 diff -ruN kicad.orig/pcbnew/pcbnew.cpp kicad/pcbnew/pcbnew.cpp
 --- kicad.orig/pcbnew/pcbnew.cpp	2010-10-19 08:48:07.000000000 +0000
-+++ kicad/pcbnew/pcbnew.cpp	2010-12-24 14:43:58.522781921 +0000
++++ kicad/pcbnew/pcbnew.cpp	2010-12-28 09:18:32.577470003 +0000
 @@ -29,6 +29,7 @@
  #include "build_version.h"
  
@@ -177,20 +188,20 @@ diff -ruN kicad.orig/pcbnew/pcbnew.cpp kicad/pcbnew/pcbnew.cpp
  
  // Colors for layers and items
  COLORS_DESIGN_SETTINGS g_ColorsSettings;
-@@ -105,6 +106,9 @@
- 
-     InitEDA_Appl( wxT( "PCBnew" ), APP_TYPE_PCBNEW );
+@@ -103,6 +104,9 @@
+     wxFileName       fn;
+     WinEDA_PcbFrame* frame = NULL;
  
 +    if( Pcbnew_Scripted() )
-+        return true;
++        return false;
 +
+     InitEDA_Appl( wxT( "PCBnew" ), APP_TYPE_PCBNEW );
+ 
      if( m_Checker && m_Checker->IsAnotherRunning() )
-     {
-         if( !IsOK( NULL, _( "Pcbnew is already running, Continue?" ) ) )
 diff -ruN kicad.orig/pcbnew/pcbnew_scripted.cpp kicad/pcbnew/pcbnew_scripted.cpp
 --- kicad.orig/pcbnew/pcbnew_scripted.cpp	1970-01-01 00:00:00.000000000 +0000
-+++ kicad/pcbnew/pcbnew_scripted.cpp	2010-12-25 07:29:51.582781922 +0000
-@@ -0,0 +1,524 @@
++++ kicad/pcbnew/pcbnew_scripted.cpp	2010-12-28 09:51:20.189470002 +0000
+@@ -0,0 +1,552 @@
 +/////////////////////////////////////////////////////////////////////////////
 +// Name:        pcbnew_scripted.cpp
 +// Copyright:   Wolfgang Spraul
@@ -240,14 +251,15 @@ diff -ruN kicad.orig/pcbnew/pcbnew_scripted.cpp kicad/pcbnew/pcbnew_scripted.cpp
 +     { wxCMD_LINE_SWITCH, wxT("h"), wxT("help"), wxT("displays help on the command line parameters"),
 +          wxCMD_LINE_VAL_NONE, wxCMD_LINE_OPTION_HELP },
 +     { wxCMD_LINE_SWITCH, wxT("d"), wxT("drill"), wxT("generates a .drl drill file") },
++     { wxCMD_LINE_SWITCH, wxT("list-layers"), wxT("list-layers"), wxT("lists the name of all enabled layers in the .brd file") },
 +     { wxCMD_LINE_OPTION, wxT("p"), wxT("plot"), wxT("plots the board [hpgl|gerber|ps|ps_a4|dxf]"),
 +          wxCMD_LINE_VAL_STRING },
 +     { wxCMD_LINE_OPTION, wxT("l"), wxT("layers"), wxT("comma separated list of layer names (default: all layers)"),
 +          wxCMD_LINE_VAL_STRING },
-+     { wxCMD_LINE_SWITCH, wxT("list-layers"), wxT("list-layers"), wxT("lists the name of all enabled layers in the .brd file") },
 +     { wxCMD_LINE_OPTION, wxT("ps-pads-drill-opt"), wxT("ps-pads-drill-opt"), wxT("Postscript pads drill option [none|small|real] (default:small)"),
 +          wxCMD_LINE_VAL_STRING },
 +     { wxCMD_LINE_SWITCH, wxT("mirror"), wxT("mirror"), wxT("mirror plot (HPGL and Postscript only)") },
++     { wxCMD_LINE_SWITCH, wxT("fill-all-zones"), wxT("fill-all-zones"), wxT("fill zones before plotting") },
 +     { wxCMD_LINE_SWITCH, wxT("drc"), wxT("drc"), wxT("generates a design rule check report (.rpt)") },
 +     { wxCMD_LINE_SWITCH, wxT("svg"), wxT("svg"), wxT("plots the board in SVG format") },
 +     { wxCMD_LINE_SWITCH, wxT("svg-merge"), wxT("svg-merge-layers"), wxT("merge layers into one SVG file") },
@@ -267,17 +279,20 @@ diff -ruN kicad.orig/pcbnew/pcbnew_scripted.cpp kicad/pcbnew/pcbnew_scripted.cpp
 +    wxString str;
 +    WinEDA_PcbFrame* frame = NULL;
 +    wxCommandEvent dummy;
++    int i;
 +
 +    WinEDA_App& app = wxGetApp();
 +    if (app.argc < 2 || app.argv[1][0] != '-')
 +        return false;
 +    g_scripted = true;
++    wxLog::EnableLogging(false); // this should suppress some wx dialogs
++    app.InitEDA_Appl( wxT( "PCBnew" ), APP_TYPE_PCBNEW );
 +
 +    wxCmdLineParser parser;
 +    parser.SetDesc(g_cmdLineDesc);
 +    parser.SetCmdLine(app.argc, app.argv);
 +    if (parser.Parse())
-+        exit(0);
++        return true;
 +    if ( parser.Found( wxT("ps-pads-drill-opt"), &str )
 +         && str.CmpNoCase( wxT("none") )
 +         && str.CmpNoCase( wxT("small") )
@@ -285,7 +300,26 @@ diff -ruN kicad.orig/pcbnew/pcbnew_scripted.cpp kicad/pcbnew/pcbnew_scripted.cpp
 +    {
 +        parser.Usage();
 +        wxPrintf(wxT("Unexpected pads drill option '%ls'.\n"), str.c_str());
-+        exit(0);
++        return true;
++    }
++    i = parser.Found( _("drill") )
++        + parser.Found( _("list-layers") )
++        + parser.Found( _("plot") )
++        + parser.Found( _("drc") )
++        + parser.Found( _("svg") )
++        + parser.Found( _("pos") )
++        + parser.Found( _("bom") )
++        + parser.Found( _("cmp") )
++        + parser.Found( _("vrml") );
++    if ( !i )
++    {
++        wxPrintf(wxT("One of --drill --list-layers --plot --drc --svg --pos --bom --cmp --vrml must be given.\n"));
++        return true;
++    }
++    if ( i > 1 )
++    {
++        wxPrintf(wxT("Only one of --drill --list-layers --plot --drc --svg --pos --bom --cmp --vrml may be given at a time.\n"));
++        return true;
 +    }
 +
 +    fn = parser.GetParam();
@@ -322,10 +356,11 @@ diff -ruN kicad.orig/pcbnew/pcbnew_scripted.cpp kicad/pcbnew/pcbnew_scripted.cpp
 +    {
 +        DIALOG_GENDRILL* drill_frame = new DIALOG_GENDRILL( frame );
 +        drill_frame->GenDrillFiles( dummy );
++        delete drill_frame;
 +    }
-+    if ( parser.Found( wxT("print-layers") ) )
++    if ( parser.Found( wxT("list-layers") ) )
 +    {
-+        for ( int i = 0; i < NB_LAYERS; i++ )
++        for ( i = 0; i < NB_LAYERS; i++ )
 +        {
 +            if( frame->GetBoard()->IsLayerEnabled( i ) )
 +            {
@@ -396,6 +431,9 @@ diff -ruN kicad.orig/pcbnew/pcbnew_scripted.cpp kicad/pcbnew/pcbnew_scripted.cpp
 +        // --mirror
 +        if ( parser.Found( wxT("mirror") ) )
 +            g_pcb_plot_options.PlotOrient = PLOT_MIROIR;
++
++        if ( parser.Found( wxT("fill-all-zones") ) )
++            frame->Fill_All_Zones( false /* verbose */ );
 +
 +        parser.Found( wxT("layers"), &layers_str );
 +        wxStringTokenizer tokenizer( layers_str, _(",") );
@@ -574,14 +612,14 @@ diff -ruN kicad.orig/pcbnew/pcbnew_scripted.cpp kicad/pcbnew/pcbnew_scripted.cpp
 +            class DRC_LIST_MARKERS* markers = new DRC_LIST_MARKERS( frame->m_drc->m_pcb );
 +            count = markers->GetCount();
 +            fprintf( fp, "\n** Found %d DRC errors **\n", count );
-+            for (int i = 0; i < count; i++)
++            for ( i = 0; i < count; i++ )
 +                fprintf( fp, "%s", CONV_TO_UTF8( markers->GetItem( i )->ShowReport()) );
 +            delete markers;
 +
 +            class DRC_LIST_UNCONNECTED* unconnected = new DRC_LIST_UNCONNECTED( &frame->m_drc->m_unconnected );
 +            count = unconnected->GetCount();
 +            fprintf( fp, "\n** Found %d unconnected pads **\n", count );
-+            for (int i = 0; i < count; i++)
++            for ( i = 0; i < count; i++ )
 +                fprintf( fp, "%s", CONV_TO_UTF8( unconnected->GetItem( i )->ShowReport()) );
 +            delete unconnected;
 +
@@ -713,7 +751,8 @@ diff -ruN kicad.orig/pcbnew/pcbnew_scripted.cpp kicad/pcbnew/pcbnew_scripted.cpp
 +            wxMkdir( subDirFor3Dshapes );
 +        frame->ExportVRML_File( fn.GetFullPath(), 1.0 /* aScale */, true /* aExport3DFile */, subDirFor3Dshapes );
 +    }
-+    exit(0);
++    delete frame;
++    return true;
 +}
 diff -ruN kicad.orig/pcbnew/pcbnew_scripted.h kicad/pcbnew/pcbnew_scripted.h
 --- kicad.orig/pcbnew/pcbnew_scripted.h	1970-01-01 00:00:00.000000000 +0000
