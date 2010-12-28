@@ -1,0 +1,52 @@
+streamline TestOthersItems (ERC)
+
+This patch changes a deeply nested "if" into a series of "breaks",
+for better readability and to facilitate future extensions.
+
+- Werner
+
+---
+
+Index: kicad/eeschema/erc.cpp
+===================================================================
+--- kicad.orig/eeschema/erc.cpp	2010-04-28 05:40:28.000000000 -0300
++++ kicad/eeschema/erc.cpp	2010-04-28 05:40:38.000000000 -0300
+@@ -648,23 +648,22 @@
+                 break;
+ 
+             *NetNbItems += 1;
++            if( erc != OK )
++		break;
++
++	    erc = DiagErc[ref_elect_type][jj];
+             if( erc == OK )
+-            {
+-                erc = DiagErc[ref_elect_type][jj];
+-                if( erc != OK )
+-                {
+-                    if( g_NetObjectslist[NetItemTst]->m_FlagOfConnection == 0 )
+-                    {
+-                        Diagnose( panel,
+-                                  g_NetObjectslist[NetItemRef],
+-                                  g_NetObjectslist[NetItemTst],
+-                                  0,
+-                                  erc );
+-                        g_NetObjectslist[NetItemTst]->m_FlagOfConnection =
+-                            NOCONNECT_SYMBOL_PRESENT;
+-                    }
+-                }
+-            }
++		break;
++            if( g_NetObjectslist[NetItemTst]->m_FlagOfConnection != 0 )
++		break;
++
++            Diagnose( panel,
++                      g_NetObjectslist[NetItemRef],
++                      g_NetObjectslist[NetItemTst],
++                      0,
++                      erc );
++            g_NetObjectslist[NetItemTst]->m_FlagOfConnection =
++		NOCONNECT_SYMBOL_PRESENT;
+             break;
+         }
+     }

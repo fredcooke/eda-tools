@@ -1,0 +1,5 @@
+bzr checkout -r 2448 lp:kicad kicad.bzr
+cd kicad.bzr
+cmake .
+make -j 5
+make install

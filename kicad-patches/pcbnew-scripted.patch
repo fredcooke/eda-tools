@@ -1,0 +1,747 @@
+This patch adds several command line parameters to pcbnew.
+
+diff -ruN kicad.orig/common/confirm.cpp kicad/common/confirm.cpp
+--- kicad.orig/common/confirm.cpp	2010-10-19 08:48:07.000000000 +0000
++++ kicad/common/confirm.cpp	2010-12-24 21:01:00.966781920 +0000
+@@ -66,6 +66,7 @@
+                              * See not above as to why this doesn't work. */
+ }
+ 
++bool g_scripted = false;
+ 
+ /* Display an error or warning message.
+  * If display time > 0 the dialog disappears after displayTime 0.1 seconds
+@@ -75,6 +76,12 @@
+ {
+     wxMessageDialog* dialog;
+ 
++    if (g_scripted)
++    {
++        wxFprintf( stderr, text + _("\n") );
++        return;
++    }
++
+     if( displaytime > 0 )
+         dialog = new WinEDA_MessageDialog( parent, text, _( "Warning" ),
+                                            wxOK | wxICON_INFORMATION,
+@@ -95,6 +102,11 @@
+ {
+     wxMessageDialog* dialog;
+ 
++    if (g_scripted)
++    {
++        wxPrintf( text + _("\n") );
++        return;
++    }
+     dialog = new WinEDA_MessageDialog( parent, text, _( "Info:" ),
+                                        wxOK | wxICON_INFORMATION, displaytime );
+ 
+diff -ruN kicad.orig/include/common.h kicad/include/common.h
+--- kicad.orig/include/common.h	2010-10-19 08:48:07.000000000 +0000
++++ kicad/include/common.h	2010-12-22 18:47:54.974932729 +0000
+@@ -6,6 +6,8 @@
+ #ifndef __INCLUDE__COMMON_H__
+ #define __INCLUDE__COMMON_H__ 1
+ 
++extern bool g_scripted;
++
+ #include "wx/confbase.h"
+ #include "wx/fileconf.h"
+ 
+diff -ruN kicad.orig/include/wxPcbStruct.h kicad/include/wxPcbStruct.h
+--- kicad.orig/include/wxPcbStruct.h	2010-10-19 08:48:07.000000000 +0000
++++ kicad/include/wxPcbStruct.h	2010-12-24 11:03:20.674781923 +0000
+@@ -50,6 +50,7 @@
+ class WinEDA_PcbFrame : public WinEDA_BasePcbFrame
+ {
+     friend class PCB_LAYER_WIDGET;
++    friend bool Pcbnew_Scripted();
+ 
+ protected:
+ 
+diff -ruN kicad.orig/pcbnew/build_BOM_from_board.cpp kicad/pcbnew/build_BOM_from_board.cpp
+--- kicad.orig/pcbnew/build_BOM_from_board.cpp	2010-10-19 08:48:07.000000000 +0000
++++ kicad/pcbnew/build_BOM_from_board.cpp	2010-12-24 21:05:59.426781921 +0000
+@@ -64,6 +64,7 @@
+     fn = GetScreen()->m_FileName;
+     fn.SetExt( CsvFileExtension );
+ 
++    if (!g_scripted) {
+     wxFileDialog dlg( this, _( "Save Bill of Materials" ), wxGetCwd(),
+                       fn.GetFullName(), CsvFileWildcard,
+                       wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
+@@ -72,6 +73,7 @@
+         return;
+ 
+     fn = dlg.GetPath();
++    }
+ 
+     FichBom = wxFopen( fn.GetFullPath(), wxT( "wt" ) );
+ 
+diff -ruN kicad.orig/pcbnew/CMakeLists.txt kicad/pcbnew/CMakeLists.txt
+--- kicad.orig/pcbnew/CMakeLists.txt	2010-10-19 08:48:07.000000000 +0000
++++ kicad/pcbnew/CMakeLists.txt	2010-12-22 02:19:48.597291239 +0000
+@@ -142,6 +142,7 @@
+     onrightclick.cpp
+     pcbnew.cpp
+     pcbnew_config.cpp
++    pcbnew_scripted.cpp
+     pcbplot.cpp
+     plotgerb.cpp
+     plothpgl.cpp
+diff -ruN kicad.orig/pcbnew/dialog_gendrill.h kicad/pcbnew/dialog_gendrill.h
+--- kicad.orig/pcbnew/dialog_gendrill.h	2010-10-19 08:48:07.000000000 +0000
++++ kicad/pcbnew/dialog_gendrill.h	2010-12-22 18:23:00.054932711 +0000
+@@ -12,6 +12,7 @@
+ 
+ class DIALOG_GENDRILL: public DIALOG_GENDRILL_BASE
+ {
++friend bool Pcbnew_Scripted();
+ 
+ private:
+ 	WinEDA_PcbFrame*  m_Parent;
+diff -ruN kicad.orig/pcbnew/drc_stuff.h kicad/pcbnew/drc_stuff.h
+--- kicad.orig/pcbnew/drc_stuff.h	2010-10-19 08:48:07.000000000 +0000
++++ kicad/pcbnew/drc_stuff.h	2010-12-24 10:01:41.438781921 +0000
+@@ -136,6 +136,7 @@
+ class DRC
+ {
+     friend class DIALOG_DRC_CONTROL;
++    friend bool Pcbnew_Scripted();
+ 
+ private:
+ 
+diff -ruN kicad.orig/pcbnew/gendrill.cpp kicad/pcbnew/gendrill.cpp
+--- kicad.orig/pcbnew/gendrill.cpp	2010-10-19 08:48:07.000000000 +0000
++++ kicad/pcbnew/gendrill.cpp	2010-12-23 13:58:26.526933001 +0000
+@@ -307,6 +307,43 @@
+             fn.SetName( fn.GetName() + layer_extend );
+             fn.SetExt( DrillFileExtension );
+ 
++            if (g_scripted)
++            {
++                FILE* excellon_dest = wxFopen( fn.GetFullPath(), wxT( "w" ) );
++                if( excellon_dest == 0 )
++                {
++                    printf("Unable to create %ls.\n", fn.GetFullPath().c_str());
++                    exit(0);
++                }
++                Create_Drill_File_EXCELLON( excellon_dest, s_HoleListBuffer,
++                                            s_ToolListBuffer );
++
++                switch( m_Choice_Drill_Map->GetSelection() )
++                {
++                case 0:
++                    break;
++    
++                case 1:
++                    GenDrillMap( fn.GetPath(), s_HoleListBuffer, s_ToolListBuffer,
++                                 PLOT_FORMAT_HPGL );
++                    break;
++    
++                case 2:
++                    GenDrillMap( fn.GetPath(), s_HoleListBuffer, s_ToolListBuffer,
++                                 PLOT_FORMAT_POST );
++                    break;
++    
++                case 3:
++                    GenDrillMap( fn.GetPath(), s_HoleListBuffer, s_ToolListBuffer,
++                                 PLOT_FORMAT_GERBER );
++                    break;
++    
++                case 4:
++                    GenDrillMap( fn.GetPath(), s_HoleListBuffer, s_ToolListBuffer,
++                                 PLOT_FORMAT_DXF );
++                    break;
++                }
++            } else {
+             wxFileDialog dlg( this, _( "Save Drill File" ), fn.GetPath(),
+                               fn.GetFullName(), DrillFileWildcard,
+                               wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
+@@ -352,6 +389,7 @@
+                              PLOT_FORMAT_DXF );
+                 break;
+             }
++            } // !g_scripted
+ 
+             if( !ExistsBuriedVias )
+                 break;
+diff -ruN kicad.orig/pcbnew/pcbnew.cpp kicad/pcbnew/pcbnew.cpp
+--- kicad.orig/pcbnew/pcbnew.cpp	2010-10-19 08:48:07.000000000 +0000
++++ kicad/pcbnew/pcbnew.cpp	2010-12-24 14:43:58.522781921 +0000
+@@ -29,6 +29,7 @@
+ #include "build_version.h"
+ 
+ #include "protos.h"
++#include "pcbnew_scripted.h"
+ 
+ // Colors for layers and items
+ COLORS_DESIGN_SETTINGS g_ColorsSettings;
+@@ -105,6 +106,9 @@
+ 
+     InitEDA_Appl( wxT( "PCBnew" ), APP_TYPE_PCBNEW );
+ 
++    if( Pcbnew_Scripted() )
++        return true;
++
+     if( m_Checker && m_Checker->IsAnotherRunning() )
+     {
+         if( !IsOK( NULL, _( "Pcbnew is already running, Continue?" ) ) )
+diff -ruN kicad.orig/pcbnew/pcbnew_scripted.cpp kicad/pcbnew/pcbnew_scripted.cpp
+--- kicad.orig/pcbnew/pcbnew_scripted.cpp	1970-01-01 00:00:00.000000000 +0000
++++ kicad/pcbnew/pcbnew_scripted.cpp	2010-12-25 07:29:51.582781922 +0000
+@@ -0,0 +1,524 @@
++/////////////////////////////////////////////////////////////////////////////
++// Name:        pcbnew_scripted.cpp
++// Copyright:   Wolfgang Spraul
++// Licence:     GPL v3 or higher
++/////////////////////////////////////////////////////////////////////////////
++
++#include "fctsys.h"
++#include "appl_wxstruct.h"
++#include "confirm.h"
++
++#include <wx/file.h>
++#include <wx/snglinst.h>
++#include <wx/cmdline.h>
++#include <wx/tokenzr.h>
++#include <wx/svg/dcsvg.h>
++
++#include "common.h"
++#include "pcbnew.h"
++#include "wxPcbStruct.h"
++#include "plot_common.h"
++#include "gestfich.h"
++#include "pcbplot.h"
++#include "autorout.h"
++#include "cell.h"
++#include "worksheet.h"
++#include "zones.h"
++#include "drag.h"
++#include "eda_dde.h"
++#include "colors_selection.h"
++#include "class_drawpanel.h"
++
++#include "id.h"
++
++#include "build_version.h"
++
++#include "protos.h"
++#include "pcbnew_scripted.h"
++#include "gendrill.h"
++#include "dialog_gendrill.h"
++#include "dialog_drc.h"
++#include "printout_controler.h"
++
++extern int g_DrawDefaultLineThickness;
++
++static const wxCmdLineEntryDesc g_cmdLineDesc [] =
++{
++     { wxCMD_LINE_SWITCH, wxT("h"), wxT("help"), wxT("displays help on the command line parameters"),
++          wxCMD_LINE_VAL_NONE, wxCMD_LINE_OPTION_HELP },
++     { wxCMD_LINE_SWITCH, wxT("d"), wxT("drill"), wxT("generates a .drl drill file") },
++     { wxCMD_LINE_OPTION, wxT("p"), wxT("plot"), wxT("plots the board [hpgl|gerber|ps|ps_a4|dxf]"),
++          wxCMD_LINE_VAL_STRING },
++     { wxCMD_LINE_OPTION, wxT("l"), wxT("layers"), wxT("comma separated list of layer names (default: all layers)"),
++          wxCMD_LINE_VAL_STRING },
++     { wxCMD_LINE_SWITCH, wxT("list-layers"), wxT("list-layers"), wxT("lists the name of all enabled layers in the .brd file") },
++     { wxCMD_LINE_OPTION, wxT("ps-pads-drill-opt"), wxT("ps-pads-drill-opt"), wxT("Postscript pads drill option [none|small|real] (default:small)"),
++          wxCMD_LINE_VAL_STRING },
++     { wxCMD_LINE_SWITCH, wxT("mirror"), wxT("mirror"), wxT("mirror plot (HPGL and Postscript only)") },
++     { wxCMD_LINE_SWITCH, wxT("drc"), wxT("drc"), wxT("generates a design rule check report (.rpt)") },
++     { wxCMD_LINE_SWITCH, wxT("svg"), wxT("svg"), wxT("plots the board in SVG format") },
++     { wxCMD_LINE_SWITCH, wxT("svg-merge"), wxT("svg-merge-layers"), wxT("merge layers into one SVG file") },
++     { wxCMD_LINE_SWITCH, wxT("svg-edge"), wxT("svg-board-edges"), wxT("add board edges to SVG plots") },
++     { wxCMD_LINE_SWITCH, wxT("pos"), wxT("pos"), wxT("create front and back .pos component position files") },
++     { wxCMD_LINE_SWITCH, wxT("bom"), wxT("bom"), wxT("create a .csv bom") },
++     { wxCMD_LINE_SWITCH, wxT("cmp"), wxT("cmp"), wxT("recreate .cmp components file for CvPcb") },
++     { wxCMD_LINE_SWITCH, wxT("vrml"), wxT("vrml"), wxT("generates a .wrl vrml board representation") },
++     { wxCMD_LINE_PARAM, 0, 0, wxT("<path to .brd file>"),
++          wxCMD_LINE_VAL_STRING },
++     { wxCMD_LINE_NONE }
++};
++
++bool Pcbnew_Scripted()
++{
++    wxFileName fn;
++    wxString str;
++    WinEDA_PcbFrame* frame = NULL;
++    wxCommandEvent dummy;
++
++    WinEDA_App& app = wxGetApp();
++    if (app.argc < 2 || app.argv[1][0] != '-')
++        return false;
++    g_scripted = true;
++
++    wxCmdLineParser parser;
++    parser.SetDesc(g_cmdLineDesc);
++    parser.SetCmdLine(app.argc, app.argv);
++    if (parser.Parse())
++        exit(0);
++    if ( parser.Found( wxT("ps-pads-drill-opt"), &str )
++         && str.CmpNoCase( wxT("none") )
++         && str.CmpNoCase( wxT("small") )
++         && str.CmpNoCase( wxT("real") ))
++    {
++        parser.Usage();
++        wxPrintf(wxT("Unexpected pads drill option '%ls'.\n"), str.c_str());
++        exit(0);
++    }
++
++    fn = parser.GetParam();
++    if( fn.GetExt() != PcbFileExtension )
++    {
++        wxLogDebug( wxT( "PcbNew file <%s> has the wrong extension. Changing extension to .brd." ), GetChars( fn.GetFullPath() ) );
++        fn.SetExt( PcbFileExtension );
++    }
++    if( !fn.FileExists())
++    {
++        wxPrintf( wxT("%ls: file '%ls' does not exist.\n" ), app.argv[0], fn.GetFullPath().c_str() );
++        exit(0);
++    }
++    wxSetWorkingDirectory( fn.GetPath() );
++
++    app.InitEDA_Appl( wxT( "PCBnew" ), APP_TYPE_PCBNEW );
++    ScreenPcb = new PCB_SCREEN();
++    ActiveScreen = ScreenPcb;
++    app.GetSettings( false /* reopenLastUsedDirectory */ );
++
++    g_DrawBgColor = BLACK;
++    frame = new WinEDA_PcbFrame( NULL, wxT( "PcbNew" ), wxPoint( 0, 0 ), wxSize( 600, 400 ) );
++
++#if 0 // enable this to see more of the GUI
++    app.SetTopWindow( frame );
++    frame->Show( true );
++    frame->Zoom_Automatique( true );
++#endif
++
++    frame->LoadOnePcbFile( fn.GetFullPath() );
++    frame->LoadProjectSettings( fn.GetFullPath() );
++
++    if ( parser.Found( wxT("drill") ) )
++    {
++        DIALOG_GENDRILL* drill_frame = new DIALOG_GENDRILL( frame );
++        drill_frame->GenDrillFiles( dummy );
++    }
++    if ( parser.Found( wxT("print-layers") ) )
++    {
++        for ( int i = 0; i < NB_LAYERS; i++ )
++        {
++            if( frame->GetBoard()->IsLayerEnabled( i ) )
++            {
++                str = frame->GetBoard()->GetLayerName( i );
++                str.Trim( true ); str.Trim( false );    // remove leading and trailing spaces if any
++                wxPrintf(str + _("\n"));
++            }
++        }
++    }
++    if ( parser.Found( wxT("plot"), &str ) ) // see pcbplot.cpp
++    {
++        bool ps_use_a4;
++        int plot_format;
++        wxString ext, layers_str;
++
++        g_pcb_plot_options.PlotLine_Width = g_DrawDefaultLineThickness;
++        if (!str.CmpNoCase( wxT("ps") ) )
++        {
++            plot_format = PLOT_FORMAT_POST;
++            ext = wxT( "ps" );
++            ps_use_a4 = false;
++        }
++        else if ( !str.CmpNoCase( wxT("ps_a4") ) )
++        {
++            plot_format = PLOT_FORMAT_POST;
++            ext = wxT( "ps" );
++            ps_use_a4 = true;
++        }
++        else if ( !str.CmpNoCase( wxT("hpgl") ) )
++        {
++            plot_format = PLOT_FORMAT_HPGL;
++            ext = wxT( "plt" );
++        }
++        else if ( !str.CmpNoCase( wxT("gerber") ) )
++        {
++            plot_format = PLOT_FORMAT_GERBER;
++            ext = wxT( "pho" );
++        }
++        else if ( !str.CmpNoCase( wxT("dxf") ) )
++        {
++            plot_format = PLOT_FORMAT_DXF;
++            ext = wxT( "dxf" );
++        }
++        else
++        {
++            parser.Usage();
++            wxPrintf(wxT("Unexpected plot type '%ls'.\n"), str.c_str());
++            exit(0);
++        }
++
++        // --ps-pads-drill-opt
++        if ( plot_format == PLOT_FORMAT_POST && parser.Found( wxT("ps-pads-drill-opt"), &str ) )
++        {
++            if (!str.CmpNoCase( wxT("none") ) )
++                g_pcb_plot_options.DrillShapeOpt = PCB_Plot_Options::NO_DRILL_SHAPE;
++            else if ( !str.CmpNoCase( wxT("small") ) )
++                g_pcb_plot_options.DrillShapeOpt = PCB_Plot_Options::SMALL_DRILL_SHAPE;
++            else if ( !str.CmpNoCase( wxT("real") ) )
++                g_pcb_plot_options.DrillShapeOpt = PCB_Plot_Options::FULL_DRILL_SHAPE;
++            else
++            {
++                parser.Usage();
++                wxPrintf(wxT("Unexpected Postscript pads drill option '%ls'.\n"), str.c_str());
++                exit(0);
++            }
++        }
++
++        // --mirror
++        if ( parser.Found( wxT("mirror") ) )
++            g_pcb_plot_options.PlotOrient = PLOT_MIROIR;
++
++        parser.Found( wxT("layers"), &layers_str );
++        wxStringTokenizer tokenizer( layers_str, _(",") );
++        int layer_i = 0;
++        wxString layername;
++        while ( ( layers_str.IsEmpty() && layer_i < NB_LAYERS ) || tokenizer.HasMoreTokens() )
++        {
++            if ( layers_str.IsEmpty() )
++            {
++                if( !frame->GetBoard()->IsLayerEnabled( layer_i ) )
++                {
++                    layer_i++;
++                    continue;
++                }
++                layername = frame->GetBoard()->GetLayerName( layer_i );
++                layername.Trim( true ); layername.Trim( false );    // remove leading and trailing spaces if any
++                layer_i++;
++            }
++            else
++            {
++                layername = tokenizer.GetNextToken();
++                for( layer_i = 0; layer_i < NB_LAYERS; layer_i++ )
++                {
++                    str = frame->GetBoard()->GetLayerName( layer_i );
++                    str.Trim( true ); str.Trim( false );    // remove leading and trailing spaces if any
++                    if ( !str.Cmp( layername ) )
++                        break;
++                }
++                if (layer_i >= NB_LAYERS)
++                {
++                    wxFprintf( stderr, _( "Unknown layer name '%ls'\n" ), layername.c_str() );
++                    continue;
++                }
++            }
++            fn = ScreenPcb->m_FileName;
++            fn.SetName( fn.GetName() + wxT( "-" ) + layername );
++
++            // Use Gerber Extensions based on layer number
++            // (See http://en.wikipedia.org/wiki/Gerber_File)
++            if( (plot_format == PLOT_FORMAT_GERBER) && true /* always use gerber extensions */ )
++            {
++                switch( layer_i )
++                {
++                case LAYER_N_FRONT:
++                    fn.SetExt( wxT( "gtl" ) );
++                    break;
++
++                case LAYER_N_2:
++                case LAYER_N_3:
++                case LAYER_N_4:
++                case LAYER_N_5:
++                case LAYER_N_6:
++                case LAYER_N_7:
++                case LAYER_N_8:
++                case LAYER_N_9:
++                case LAYER_N_10:
++                case LAYER_N_11:
++                case LAYER_N_12:
++                case LAYER_N_13:
++                case LAYER_N_14:
++                case LAYER_N_15:
++
++                    // TODO: see if we use .gbr or a layer identifier (gb1 .. gbnn ?)
++                    // according to the new internal layers designation
++                    // (1 is the first internal layer from the front layer)
++                    fn.SetExt( wxT( "gbr" ) );
++                    break;
++
++                case LAYER_N_BACK:
++                    fn.SetExt( wxT( "gbl" ) );
++                    break;
++
++                case ADHESIVE_N_BACK:
++                    fn.SetExt( wxT( "gba" ) );
++                    break;
++
++                case ADHESIVE_N_FRONT:
++                    fn.SetExt( wxT( "gta" ) );
++                    break;
++
++                case SOLDERPASTE_N_BACK:
++                    fn.SetExt( wxT( "gbp" ) );
++                    break;
++
++                case SOLDERPASTE_N_FRONT:
++                    fn.SetExt( wxT( "gtp" ) );
++                    break;
++
++                case SILKSCREEN_N_BACK:
++                    fn.SetExt( wxT( "gbo" ) );
++                    break;
++
++                case SILKSCREEN_N_FRONT:
++                    fn.SetExt( wxT( "gto" ) );
++                    break;
++
++                case SOLDERMASK_N_BACK:
++                    fn.SetExt( wxT( "gbs" ) );
++                    break;
++
++                case SOLDERMASK_N_FRONT:
++                    fn.SetExt( wxT( "gts" ) );
++                    break;
++
++                case DRAW_N:
++                case COMMENT_N:
++                case ECO1_N:
++                case ECO2_N:
++                case EDGE_N:
++                default:
++                    fn.SetExt( wxT( "gbr" ) );
++                    break;
++                }
++            }
++            else
++            {
++                fn.SetExt( ext );
++            }
++
++            bool success = false;
++
++            switch( plot_format )
++            {
++            case PLOT_FORMAT_POST:
++                success = frame->Genere_PS( fn.GetFullPath(), layer_i, ps_use_a4,
++                                            FILLED /* trace_mode */ );
++                break;
++
++            case PLOT_FORMAT_GERBER:
++                success = frame->Genere_GERBER( fn.GetFullPath(), layer_i,
++                                                false /* PlotOriginIsAuxAxis */,
++                                                FILLED /* trace_mode */ );
++                break;
++
++            case PLOT_FORMAT_HPGL:
++                success = frame->Genere_HPGL( fn.GetFullPath(), layer_i,
++                                              FILLED /* trace_mode */ );
++                break;
++
++            case PLOT_FORMAT_DXF:
++                success = frame->Genere_DXF( fn.GetFullPath(), layer_i,
++                                             FILLED /* trace_mode */ );
++                break;
++            }
++
++            // Print diags in messages box:
++            wxString msg;
++            if( !success )
++                wxFprintf( stderr, _( "Unable to create <%s>\n" ), GetChars( fn.GetFullPath() ) );
++        }
++    }
++    if ( parser.Found( wxT("drc") ) ) // drc_stuff.h drc.cpp dialog_drc.{h,cpp}
++    {
++        fn = ScreenPcb->m_FileName;
++        fn.SetExt( _("rpt") );
++
++        // if you get a segfault, try adding frame->m_drc->ShowDialog() to run through the GUI codepath
++        frame->m_drc->updatePointers();
++        frame->m_drc->SetSettings(true, // Pad to pad DRC test enabled
++                          true,         // unconnected pdas DRC test enabled
++                          true,         // DRC test for zones enabled
++                          fn.GetFullPath(), // report file name
++                          true /* aSaveReport */ );
++        frame->m_drc->m_pcb->m_Status_Pcb = 0;      // Force full connectivity and ratsnest recalculations
++        frame->m_drc->RunTests();
++        FILE* fp = wxFopen( fn.GetFullPath(), wxT( "w" ) );
++        { // strings should match dialog_drc.cpp:DIALOG_DRC_CONTROL::writeReport()
++            int count;
++
++            fprintf( fp, "** Drc report for %s **\n",
++                    CONV_TO_UTF8( ScreenPcb->m_FileName ) );
++
++            wxDateTime now = wxDateTime::Now();
++            fprintf( fp, "** Created on %s **\n", CONV_TO_UTF8( now.Format( wxT( "%F %T" ) ) ) );
++
++            class DRC_LIST_MARKERS* markers = new DRC_LIST_MARKERS( frame->m_drc->m_pcb );
++            count = markers->GetCount();
++            fprintf( fp, "\n** Found %d DRC errors **\n", count );
++            for (int i = 0; i < count; i++)
++                fprintf( fp, "%s", CONV_TO_UTF8( markers->GetItem( i )->ShowReport()) );
++            delete markers;
++
++            class DRC_LIST_UNCONNECTED* unconnected = new DRC_LIST_UNCONNECTED( &frame->m_drc->m_unconnected );
++            count = unconnected->GetCount();
++            fprintf( fp, "\n** Found %d unconnected pads **\n", count );
++            for (int i = 0; i < count; i++)
++                fprintf( fp, "%s", CONV_TO_UTF8( unconnected->GetItem( i )->ShowReport()) );
++            delete unconnected;
++
++            fprintf( fp, "\n** End of Report **\n" );
++        }
++        fclose( fp );
++    }
++    if ( parser.Found( wxT("svg") ) ) // see dialog_SVG_print.cpp:DIALOG_SVG_PRINT::DrawPage()
++    {
++        BASE_SCREEN* screen = frame->GetBaseScreen();
++        wxSize  SheetSize;  // Sheet size in internal units
++        wxString layers_str;
++        PRINT_PARAMETERS print_params;
++        long PrintMaskLayer;
++        int layer_i;
++        wxSVGFileDC* dc;
++
++        screen->m_DrawOrg.x   = screen->m_DrawOrg.y = 0;
++        screen->m_StartVisu.x = screen->m_StartVisu.y = 0;
++        SheetSize    = screen->m_CurrentSheetDesc->m_Size;  // size in 1/1000 inch
++        SheetSize.x *= frame->m_InternalUnits / 1000;
++        SheetSize.y *= frame->m_InternalUnits / 1000;    // size in pixels
++        screen->SetScalingFactor( 1.0 );
++        screen->m_IsPrinting = true;
++        float dpi = (float)frame->m_InternalUnits;
++
++        frame->DrawPanel->m_ClipBox.SetX( 0 );
++        frame->DrawPanel->m_ClipBox.SetY( 0 );
++        frame->DrawPanel->m_ClipBox.SetWidth( 0x7FFFFF0 );
++        frame->DrawPanel->m_ClipBox.SetHeight( 0x7FFFFF0 );
++
++        print_params.m_DrillShapeOpt = PRINT_PARAMETERS::FULL_DRILL_SHAPE;
++        print_params.m_Print_Sheet_Ref = false; // reference in bottom-right corner
++
++        SetLocaleTo_C_standard();       // Switch the locale to standard C (needed
++                                        // to print floating point numbers like 1.3)
++        int bg_color = g_DrawBgColor;
++        g_DrawBgColor = WHITE;
++
++        PrintMaskLayer = 0;
++        if ( parser.Found( wxT("layers"), &layers_str ) )
++        {
++            wxStringTokenizer tokenizer( layers_str, _(",") );
++            layer_i = 0;
++            wxString layername;
++            while ( tokenizer.HasMoreTokens() )
++            {
++                layername = tokenizer.GetNextToken();
++                for( layer_i = 0; layer_i < NB_LAYERS; layer_i++ )
++                {
++                    str = frame->GetBoard()->GetLayerName( layer_i );
++                    str.Trim( true ); str.Trim( false );    // remove leading and trailing spaces if any
++                    if ( !str.Cmp( layername ) )
++                        break;
++                }
++                if (layer_i >= NB_LAYERS)
++                {
++                    wxFprintf( stderr, _( "Unknown layer name '%ls'\n" ), layername.c_str() );
++                    continue;
++                }
++                PrintMaskLayer |= 1 << layer_i;
++            }
++        }
++        else
++        {
++            for ( layer_i = 0; layer_i < NB_LAYERS; layer_i++ )
++            {
++                if ( frame->GetBoard()->IsLayerEnabled( layer_i ) )
++                    PrintMaskLayer |= 1 << layer_i;
++            }
++        }
++
++        bool SvgMergeLayers = parser.Found( wxT("svg-merge-layers") );
++        bool SvgEdgeLayer = parser.Found( wxT("svg-board-edges") );
++
++        for ( layer_i = 0; layer_i < NB_LAYERS; layer_i++ )
++        {
++            long LayerMask;
++
++            fn = ScreenPcb->m_FileName;
++            fn.SetExt( _("svg") );
++            if ( SvgMergeLayers )
++            {
++                fn.SetName( fn.GetName() + wxT( "-brd" ) );
++                LayerMask = PrintMaskLayer;
++            }
++            else
++            {
++                if ( !(PrintMaskLayer & (1 << layer_i) ))
++                    continue;
++                str = frame->GetBoard()->GetLayerName( layer_i );
++                str.Trim( true ); str.Trim( false );    // remove leading and trailing spaces if any
++                fn.SetName( fn.GetName() + wxT( "-" ) + str );
++                LayerMask = 1 << layer_i;
++            }
++            if ( SvgEdgeLayer )
++                LayerMask |= EDGE_LAYER;
++
++            dc = new wxSVGFileDC( fn.GetFullPath(), SheetSize.x, SheetSize.y, dpi );
++            GRResetPenAndBrush( dc );
++            frame->PrintPage( dc, false /* aPrint_Frame_Ref */, LayerMask, false /* aPrintMirrorMode */, &print_params);
++            delete dc;
++            dc = 0;
++
++            if ( SvgMergeLayers )
++                break;
++        }
++        g_DrawBgColor = bg_color;
++        SetLocaleTo_Default(); // revert to the current locale
++        screen->m_IsPrinting = false;
++    }
++
++    if ( parser.Found( wxT("pos") ) ) // see gen_modules_placefile.cpp:WinEDA_PcbFrame::GenModulesPosition()
++        frame->GenModulesPosition( dummy );
++
++    if ( parser.Found( wxT("bom") ) ) // see build_BOM_from_board.cpp:WinEDA_PcbFrame::RecreateBOMFileFromBoard()
++        frame->RecreateBOMFileFromBoard( dummy );
++
++    if ( parser.Found( wxT("cmp") ) ) // see xchgmod.cpp:WinEDA_PcbFrame::RecreateCmpFileFromBoard()
++        frame->RecreateCmpFileFromBoard( dummy );
++
++    if ( parser.Found( wxT("vrml") ) ) // see export_vrml.cpp:WinEDA_PcbFrame::OnExportVRML()
++    {
++        wxString subDirFor3Dshapes( _( "shapes3D" ) );
++
++        fn = ScreenPcb->m_FileName;
++        fn.SetExt( _("wrl") );
++        if( ! wxDirExists( subDirFor3Dshapes ) )
++            wxMkdir( subDirFor3Dshapes );
++        frame->ExportVRML_File( fn.GetFullPath(), 1.0 /* aScale */, true /* aExport3DFile */, subDirFor3Dshapes );
++    }
++    exit(0);
++}
+diff -ruN kicad.orig/pcbnew/pcbnew_scripted.h kicad/pcbnew/pcbnew_scripted.h
+--- kicad.orig/pcbnew/pcbnew_scripted.h	1970-01-01 00:00:00.000000000 +0000
++++ kicad/pcbnew/pcbnew_scripted.h	2010-12-22 18:47:58.774932729 +0000
+@@ -0,0 +1,7 @@
++/////////////////////////////////////////////////////////////////////////////
++// Name:        pcbnew_scripted.h
++// Copyright:   Wolfgang Spraul
++// Licence:     GPL v3 or higher
++/////////////////////////////////////////////////////////////////////////////
++
++bool Pcbnew_Scripted();
+diff -ruN kicad.orig/pcbnew/xchgmod.cpp kicad/pcbnew/xchgmod.cpp
+--- kicad.orig/pcbnew/xchgmod.cpp	2010-10-19 08:48:07.000000000 +0000
++++ kicad/pcbnew/xchgmod.cpp	2010-12-24 21:11:13.642781922 +0000
+@@ -577,6 +577,7 @@
+     wildcard = _( "Component files (." ) + NetCmpExtBuffer + wxT( ")|*." ) +
+                NetCmpExtBuffer;
+ 
++    if (!g_scripted) {
+     wxFileDialog dlg( this, _( "Save Component Files" ), wxGetCwd(),
+                       fn.GetFullName(), wildcard,
+                       wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
+@@ -585,6 +586,7 @@
+         return;
+ 
+     fn = dlg.GetPath();
++    }
+ 
+     FichCmp = wxFopen( fn.GetFullPath(), wxT( "wt" ) );
+     if( FichCmp == NULL )

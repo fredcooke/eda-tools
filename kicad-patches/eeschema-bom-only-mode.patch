@@ -1,0 +1,164 @@
+This patch adds support for eeschema --bom mode to only create
+a bom .lst file.
+
+Index: kicad/eeschema/cmdline.h
+===================================================================
+--- kicad.orig/eeschema/cmdline.h	1970-01-01 00:00:00.000000000 +0000
++++ kicad/eeschema/cmdline.h	2010-12-21 22:09:57.225291237 +0000
+@@ -0,0 +1,26 @@
++/////////////////////////////////////////////////////////////////////////////
++// Name:        cmdline.h
++// Copyright:   Wolfgang Spraul
++// Licence:     GPL v3 or higher
++/////////////////////////////////////////////////////////////////////////////
++
++#include "fctsys.h"
++#include "appl_wxstruct.h"
++#include "common.h"
++
++#include "program.h"
++#include "general.h"
++#include "netlist.h"
++
++#include "wx/valgen.h"
++
++#include "dialog_build_BOM.h"
++
++class cmdline_bom : public DIALOG_BUILD_BOM
++{
++public:
++    cmdline_bom( WinEDA_DrawFrame* parent ) : DIALOG_BUILD_BOM( parent ) {}
++    void write_bom();
++};
++
++void BomOnly( WinEDA_App* app );
+
+Index: kicad/eeschema/cmdline.cpp
+===================================================================
+--- kicad.orig/eeschema/cmdline.cpp	1970-01-01 00:00:00.000000000 +0000
++++ kicad/eeschema/cmdline.cpp	2010-12-21 22:09:57.225291237 +0000
+@@ -0,0 +1,75 @@
++/////////////////////////////////////////////////////////////////////////////
++// Name:        cmdline.cpp
++// Copyright:   Wolfgang Spraul
++// Licence:     GPL v3 or higher
++/////////////////////////////////////////////////////////////////////////////
++
++#include "fctsys.h"
++#include "appl_wxstruct.h"
++#include "common.h"
++
++#include "program.h"
++#include "general.h"
++#include "netlist.h"
++#include "protos.h"
++
++#include "wx/valgen.h"
++
++#include "dialog_build_BOM.h"
++#include "cmdline.h"
++
++void cmdline_bom::write_bom()
++{
++    wxFileName fn2 = g_RootSheet->m_AssociatedScreen->m_FileName;
++    fn2.SetExt( wxT( "lst" ) );
++    m_ListCmpbyRefItems->SetValue( true );
++    m_AddFootprintField->SetValue( true );
++    m_AddAllFields->SetValue( true );
++    GenereListeOfItems( fn2.GetFullPath(), false /* aIncludeSubComponents */ );
++}
++
++void BomOnly( WinEDA_App* app )
++{
++    WinEDA_SchematicFrame* frame;
++    wxFileName fn;
++
++    if( app->argc < 3 )
++    {
++        fprintf( stderr, "usage: %ls [[--bom] filename]\n", *app->argv );
++        exit( 1 );
++    }
++
++    fn = app->argv[2];
++    if( !fn.IsOk() )
++    {
++        fprintf( stderr, "%ls: bad name\n", app->argv[2] );
++        exit(1);
++    }
++
++    /* init EESCHEMA */
++    SeedLayers();
++    app->GetSettings( FALSE );
++
++    // Create main frame (schematic frame) :
++    frame = new WinEDA_SchematicFrame( NULL, wxT( "EESchema" ),
++                                       wxPoint( 0, 0 ), wxSize( 600, 400 ) );
++
++    app->SetTopWindow( frame );
++    frame->Show( FALSE );
++
++    ActiveScreen = frame->GetScreen();
++
++    /* Load file specified in the command line. */
++    if( fn.GetExt() != SchematicFileExtension )
++        fn.SetExt( SchematicFileExtension );
++    wxSetWorkingDirectory( fn.GetPath() );
++    if( !frame->LoadOneEEProject( fn.GetFullPath(), false ) )
++    {
++        fprintf( stderr, "%ls: can't load\n", app->argv[2] );
++        exit( 1 );
++    }
++
++    cmdline_bom* bom_dlg = new cmdline_bom( frame );
++    bom_dlg->write_bom();
++    exit( 0 );
++}
+
+Index: kicad/eeschema/CMakeLists.txt
+===================================================================
+--- kicad.orig/eeschema/CMakeLists.txt	1970-01-01 00:00:00.000000000 +0000
++++ kicad/eeschema/CMakeLists.txt	2010-12-21 20:54:28.525291236 +0000
+@@ -32,6 +32,7 @@
+     class_text-label.cpp
+     classes_body_items.cpp
+     cleanup.cpp
++    cmdline.cpp
+     cmp_library_keywords.cpp
+     cmp_library_lexer.cpp
+     controle.cpp
+
+Index: kicad/eeschema/dialog_build_BOM.h
+===================================================================
+--- kicad.orig/eeschema/dialog_build_BOM.h	2010-10-19 08:48:07.000000000 +0000
++++ kicad/eeschema/dialog_build_BOM.h	2010-12-21 21:34:33.645291246 +0000
+@@ -17,7 +17,7 @@
+     wxConfig*           m_Config;
+     wxString            m_ListFileName;
+ 
+-private:
++protected:
+     void OnRadioboxSelectFormatSelected( wxCommandEvent& event );
+     void OnOkClick( wxCommandEvent& event );
+     void OnCancelClick( wxCommandEvent& event );
+
+Index: kicad/eeschema/eeschema.cpp
+===================================================================
+--- kicad.orig/eeschema/eeschema.cpp	2010-10-20 07:17:19.418103045 +0000
++++ kicad/eeschema/eeschema.cpp	2010-12-21 20:46:41.857291236 +0000
+@@ -17,6 +17,7 @@
+ #include "program.h"
+ #include "general.h"
+ #include "protos.h"
++#include "cmdline.h"
+ 
+ #include <wx/snglinst.h>
+ 
+@@ -197,6 +198,8 @@
+ 
+     if( argc > 1 && !wxStrcmp( argv[1], wxT( "--plot" ) ) )
+         PlotOnly( this );
++    if( argc > 1 && !wxStrcmp( argv[1], wxT( "--bom" ) ) )
++        BomOnly( this );
+ 
+     if( m_Checker && m_Checker->IsAnotherRunning() )
+     {

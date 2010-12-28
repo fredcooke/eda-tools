@@ -1,0 +1,110 @@
+This patch adds a command-line option --plot to eeschema that makes it
+run File -> Plot -> Plot PostScript -> Plot ALL on the specified file.
+It also prevents eeschema from opening a window and from checking for
+concurrent instances.
+
+This lets shell scripts generate plots, i.e., of schematics that have
+been processed by these scripts.
+
+Known issue: if there is an error or a warning, eeschema will bring up
+a dialog instead of just exiting.
+
+This patch is for KiCad SVN revision 1771.
+
+- Werner
+
+---
+
+Index: kicad/eeschema/eeschema.cpp
+===================================================================
+--- kicad.orig/eeschema/eeschema.cpp	2010-04-28 04:34:54.000000000 -0300
++++ kicad/eeschema/eeschema.cpp	2010-04-28 05:32:37.000000000 -0300
+@@ -10,6 +10,8 @@
+ #include "gestfich.h"
+ #include "bitmaps.h"
+ #include "eda_dde.h"
++#include "program.h"
++#include "plotps.h"
+ #include "id.h"
+ 
+ #include "program.h"
+@@ -85,6 +87,69 @@
+ int DefaultTransformMatrix[2][2] = { { 1, 0 }, { 0, -1 } };
+ 
+ 
++/*
++ * "PlotOnly" is a quick and dirty implementation of a non-interactive plot
++ * mode.
++ *
++ * This is neither a nice nor a complete implementation of this concept. E.g.,
++ * if there are any errors, KiCad may bring up a dialog instead of just
++ * exiting.
++ *
++ * However, this is the best we can do without making considerably intrusive
++ * changes to the internals of KiCad.
++ */
++
++
++static void PlotOnly( WinEDA_App* app )
++{
++    WinEDA_SchematicFrame* frame;
++    wxFileName fn;
++
++    if( app->argc < 3 )
++    {
++        fprintf( stderr, "usage: %ls [[--plot] filename]\n", *app->argv );
++        exit( 1 );
++    }
++
++    fn = app->argv[2];
++    if( !fn.IsOk() )
++    {
++        fprintf( stderr, "%ls: bad name\n", app->argv[2] );
++        exit(1);
++    }
++
++    /* init EESCHEMA */
++    SeedLayers();
++    app->GetSettings( FALSE );
++
++    // Create main frame (schematic frame) :
++    frame = new WinEDA_SchematicFrame( NULL, wxT( "EESchema" ),
++                                       wxPoint( 0, 0 ), wxSize( 600, 400 ) );
++
++    app->SetTopWindow( frame );
++    frame->Show( FALSE );
++
++    ActiveScreen = frame->GetScreen();
++
++    /* Load file specified in the command line. */
++    if( fn.GetExt() != SchematicFileExtension )
++        fn.SetExt( SchematicFileExtension );
++    wxSetWorkingDirectory( fn.GetPath() );
++    if( !frame->LoadOneEEProject( fn.GetFullPath(), false ) )
++    {
++        fprintf( stderr, "%ls: can't load\n", app->argv[2] );
++        exit( 1 );
++    }
++
++    WinEDA_PlotPSFrame* Ps_frame = new WinEDA_PlotPSFrame( frame );
++    wxCommandEvent dummy;
++
++    Ps_frame->OnPlotPsAllExecuteClick( dummy );
++
++    exit( 0 );
++}
++
++
+ /************************************/
+ /* Called to initialize the program */
+ /************************************/
+@@ -127,6 +192,9 @@
+ 
+     InitEDA_Appl( wxT( "EESchema" ), APP_TYPE_EESCHEMA );
+ 
++    if( argc > 1 && !wxStrcmp( argv[1], wxT( "--plot" ) ) )
++        PlotOnly( this );
++
+     if( m_Checker && m_Checker->IsAnotherRunning() )
+     {
+         if( !IsOK( NULL, _( "Eeschema is already running, Continue?" ) ) )
