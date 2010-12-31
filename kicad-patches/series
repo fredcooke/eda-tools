@@ -12,4 +12,5 @@ streamline-erc.patch
 erc-exceptions.patch
 
 # cmdline options for eeschema and pcbnew
+scripted-new.patch
 scripted.patch
