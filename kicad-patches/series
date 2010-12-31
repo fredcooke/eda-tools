@@ -1,14 +1,5 @@
 # Based on BZR revision 2448
 
-# eeschema --plot extension, pending
-eeschema-plot-only-mode.patch
-
-# eeschema --bom extension, pending
-eeschema-bom-only-mode.patch
-
-# pcbnew command line support
-pcbnew-scripted.patch
-
 # under discussion
 fix-pinedit-collision.patch
 
@@ -19,3 +10,6 @@ fix-pinedit-collision.patch
 # ERC pin exceptions
 streamline-erc.patch
 erc-exceptions.patch
+
+# cmdline options for eeschema and pcbnew
+scripted.patch

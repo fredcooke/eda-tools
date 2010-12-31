@@ -1,13 +1,11 @@
-This patch adds several command line parameters to pcbnew.
-
 diff -ruN kicad.orig/common/confirm.cpp kicad/common/confirm.cpp
 --- kicad.orig/common/confirm.cpp	2010-10-19 08:48:07.000000000 +0000
-+++ kicad/common/confirm.cpp	2010-12-24 21:01:00.966781920 +0000
++++ kicad/common/confirm.cpp	2010-12-28 13:58:14.765392001 +0000
 @@ -66,6 +66,7 @@
                               * See not above as to why this doesn't work. */
  }
  
-+bool g_scripted = false;
++bool g_IsScripted = false;
  
  /* Display an error or warning message.
   * If display time > 0 the dialog disappears after displayTime 0.1 seconds
@@ -15,7 +13,7 @@ diff -ruN kicad.orig/common/confirm.cpp kicad/common/confirm.cpp
  {
      wxMessageDialog* dialog;
  
-+    if (g_scripted)
++    if (g_IsScripted)
 +    {
 +        wxFprintf( stderr, text + _("\n") );
 +        return;
@@ -28,7 +26,7 @@ diff -ruN kicad.orig/common/confirm.cpp kicad/common/confirm.cpp
  {
      wxMessageDialog* dialog;
  
-+    if (g_scripted)
++    if (g_IsScripted)
 +    {
 +        wxPrintf( text + _("\n") );
 +        return;
@@ -38,23 +36,401 @@ diff -ruN kicad.orig/common/confirm.cpp kicad/common/confirm.cpp
  
 diff -ruN kicad.orig/common/edaappl.cpp kicad/common/edaappl.cpp
 --- kicad.orig/common/edaappl.cpp	2010-10-19 08:48:07.000000000 +0000
-+++ kicad/common/edaappl.cpp	2010-12-28 08:57:27.929470001 +0000
++++ kicad/common/edaappl.cpp	2010-12-28 13:58:28.045392001 +0000
 @@ -272,6 +272,7 @@
      wxString EnvLang;
  
      m_Id = aId;
-+if (!g_scripted)
++if (!g_IsScripted)
      m_Checker = new wxSingleInstanceChecker( aName.Lower() + wxT( "-" ) +
                                              wxGetUserId() );
  
+diff -ruN kicad.orig/eeschema/CMakeLists.txt kicad/eeschema/CMakeLists.txt
+--- kicad.orig/eeschema/CMakeLists.txt	2010-10-19 08:48:07.000000000 +0000
++++ kicad/eeschema/CMakeLists.txt	2010-12-28 13:43:28.365392001 +0000
+@@ -83,6 +83,7 @@
+     eeredraw.cpp
+     eeschema.cpp
+     eeschema_config.cpp
++    eeschema_scripted.cpp
+     erc.cpp
+     events_called_functions_for_edit.cpp
+     files-io.cpp
+diff -ruN kicad.orig/eeschema/dialog_build_BOM.h kicad/eeschema/dialog_build_BOM.h
+--- kicad.orig/eeschema/dialog_build_BOM.h	2010-10-19 08:48:07.000000000 +0000
++++ kicad/eeschema/dialog_build_BOM.h	2010-12-29 14:53:53.210259002 +0000
+@@ -12,6 +12,7 @@
+ 
+ class DIALOG_BUILD_BOM : public DIALOG_BUILD_BOM_BASE
+ {
++friend class EESCHEMA_SCRIPTED;
+ private:
+     WinEDA_DrawFrame *  m_Parent;
+     wxConfig*           m_Config;
+diff -ruN kicad.orig/eeschema/dialog_erc.h kicad/eeschema/dialog_erc.h
+--- kicad.orig/eeschema/dialog_erc.h	2010-10-19 08:48:07.000000000 +0000
++++ kicad/eeschema/dialog_erc.h	2010-12-29 15:45:04.002259005 +0000
+@@ -30,6 +30,7 @@
+ 
+ class DIALOG_ERC : public DIALOG_ERC_BASE
+ {
++friend class EESCHEMA_SCRIPTED;
+     DECLARE_EVENT_TABLE()
+ 
+ private:
+diff -ruN kicad.orig/eeschema/dialog_SVG_print.cpp kicad/eeschema/dialog_SVG_print.cpp
+--- kicad.orig/eeschema/dialog_SVG_print.cpp	2010-10-19 08:48:07.000000000 +0000
++++ kicad/eeschema/dialog_SVG_print.cpp	2010-12-31 14:59:18.871823000 +0000
+@@ -33,6 +33,7 @@
+ 
+ class DIALOG_SVG_PRINT : public DIALOG_SVG_PRINT_base
+ {
++friend void ScriptedPrintSVGDoc( WinEDA_DrawFrame* frame, bool aPrintAll, bool aPrint_Sheet_Ref, bool aPrintBlackAndWhite );
+ private:
+     WinEDA_DrawFrame * m_Parent;
+     wxConfig* m_Config;
+@@ -57,6 +58,19 @@
+                    bool aPrint_Sheet_Ref = false);
+ };
+ 
++void ScriptedPrintSVGDoc( WinEDA_DrawFrame* frame, bool aPrintAll, bool aPrint_Sheet_Ref, bool aPrintBlackAndWhite )
++{
++    // TBD: It would be better to iterate over the pages ourselves and use
++    //      DrawSVGPage() directly, bypassing the GUI dialog...
++    class DIALOG_SVG_PRINT* dlg = new DIALOG_SVG_PRINT( frame );
++    dlg->m_DialogPenWidth->SetValue(
++        ReturnStringFromValue(g_UserUnit, g_DrawDefaultLineThickness,
++                              dlg->m_Parent->m_InternalUnits ) );
++    dlg->m_ModeColorOption->SetSelection( aPrintBlackAndWhite );
++    dlg->PrintSVGDoc( aPrintAll, aPrint_Sheet_Ref );
++    delete dlg;
++}
++
+ 
+ /* Prepare the data structures of print management and display the dialog
+  * window for printing sheets.
+diff -ruN kicad.orig/eeschema/eeschema.cpp kicad/eeschema/eeschema.cpp
+--- kicad.orig/eeschema/eeschema.cpp	2010-12-28 15:30:43.309392002 +0000
++++ kicad/eeschema/eeschema.cpp	2010-12-28 15:38:23.073392001 +0000
+@@ -15,6 +15,7 @@
+ #include "program.h"
+ #include "general.h"
+ #include "protos.h"
++#include "eeschema_scripted.h"
+ 
+ #include <wx/snglinst.h>
+ 
+@@ -128,6 +129,9 @@
+ 
+     g_DebugLevel = 0;   // Debug level */
+ 
++    if ( g_EESchemaScripted.Run() )
++        return false;
++
+     InitEDA_Appl( wxT( "EESchema" ), APP_TYPE_EESCHEMA );
+ 
+     if( m_Checker && m_Checker->IsAnotherRunning() )
+diff -ruN kicad.orig/eeschema/eeschema_scripted.cpp kicad/eeschema/eeschema_scripted.cpp
+--- kicad.orig/eeschema/eeschema_scripted.cpp	1970-01-01 00:00:00.000000000 +0000
++++ kicad/eeschema/eeschema_scripted.cpp	2010-12-31 18:03:37.871822958 +0000
+@@ -0,0 +1,251 @@
++/////////////////////////////////////////////////////////////////////////////
++// Name:        eeschema_scripted.cpp
++// Copyright:   Werner Almesberger, Wolfgang Spraul
++// Licence:     GPL v2 or higher
++/////////////////////////////////////////////////////////////////////////////
++
++#include "fctsys.h"
++#include "appl_wxstruct.h"
++#include "common.h"
++#include "program.h"
++#include "general.h"
++#include "netlist.h"
++#include "protos.h"
++#include "gr_basic.h"
++#include "plotps.h"
++#include "wx/cmdline.h"
++#include "dialog_build_BOM.h"
++#include "dialog_SVG_print_base.h"
++#include "dialog_erc.h"
++#include "plotdxf.h"
++#include "class_drawsheetpath.h"
++#include "eeschema_scripted.h"
++
++EESCHEMA_SCRIPTED g_EESchemaScripted;
++
++static const wxCmdLineEntryDesc g_cmdLineDesc [] =
++{
++     { wxCMD_LINE_SWITCH, wxT("h"), wxT("help"), wxT("displays help on the command line parameters"),
++          wxCMD_LINE_VAL_NONE, wxCMD_LINE_OPTION_HELP },
++
++     { wxCMD_LINE_SWITCH, wxT("l"), wxT("list-sheets"), wxT("list schematics pages") },
++
++     { wxCMD_LINE_OPTION, wxT("px"), wxT("plotx"), wxT("plots the board [ps|svg|dxf]"),
++          wxCMD_LINE_VAL_STRING },
++     { wxCMD_LINE_SWITCH, wxT("plotx-bw"), wxT("plotx-bw"), wxT("plot: black & white (default: color)") },
++     { wxCMD_LINE_SWITCH, wxT("plotx-sheetref"), wxT("plotx-sheetref"), wxT("plot: print sheet reference (default: off)") },
++     { wxCMD_LINE_SWITCH, wxT("p"), wxT("plot"), wxT("plots the schematics (deprecated, use --plotx=ps --plotx-bw)") },
++
++     { wxCMD_LINE_SWITCH, wxT("b"), wxT("bom"), wxT("generate bill of materials (.bom)") },
++     { wxCMD_LINE_SWITCH, wxT("e"), wxT("erc"), wxT("generate electric rules check (.erc) file") },
++     { wxCMD_LINE_SWITCH, wxT("n"), wxT("netlist"), wxT("generate netlist (.net)") },
++     { wxCMD_LINE_PARAM, 0, 0, wxT("<path to .sch file>"),
++          wxCMD_LINE_VAL_STRING },
++     { wxCMD_LINE_NONE }
++};
++
++bool ScriptedDrawSVGPage( WinEDA_DrawFrame * frame,
++                   const wxString& FullFileName, BASE_SCREEN* screen,
++                   bool aPrintBlackAndWhite = false,
++                   bool aPrint_Sheet_Ref = false);
++
++bool EESCHEMA_SCRIPTED::Run()
++{
++    wxFileName fn;
++    WinEDA_SchematicFrame* frame;
++    wxCommandEvent DummyCmd;
++    wxString str;
++    int i;
++
++    WinEDA_App& app = wxGetApp();
++    if (app.argc < 2 || app.argv[1][0] != '-')
++        return false;
++    g_IsScripted = true;
++    wxLog::EnableLogging(false); // this should suppress some wx dialogs
++    app.InitEDA_Appl( wxT( "EESchema" ), APP_TYPE_EESCHEMA );
++
++    wxCmdLineParser parser;
++    parser.SetDesc(g_cmdLineDesc);
++    parser.SetCmdLine(app.argc, app.argv);
++    if (parser.Parse())
++        return true;
++
++    i = parser.Found( _("list-sheets") )
++        + parser.Found( _("plot") )
++        + parser.Found( _("plotx") )
++        + parser.Found( _("bom") )
++        + parser.Found( _("erc") )
++        + parser.Found( _("netlist") );
++    if ( !i )
++    {
++        wxPrintf(wxT("One of --list-sheets --plot --plotx --bom --erc --netlist must be given.\n"));
++        return true;
++    }
++    if ( i > 1 )
++    {
++        wxPrintf(wxT("Only one of --list-sheets --plot --plotx --bom --erc --netlist may be given at a time.\n"));
++        return true;
++    }
++
++    // parse plotting parameters
++    enum PlotCommand {
++        PLOT_NONE,
++        PLOT_PS,
++        PLOT_SVG,
++        PLOT_DXF
++    } PlotCmd;
++    bool PlotBW;
++    bool PlotSheetRef;
++
++    PlotCmd = PLOT_NONE;
++    if ( parser.Found( wxT("plot") ) ) // legacy parameter originally introduced by
++                                       // Werner, still used in schhist and other places
++    {
++        PlotCmd = PLOT_PS;
++        PlotBW = true;
++        PlotSheetRef = false;
++    }
++    else if ( parser.Found( _("plotx"), &str ) )
++    {
++        if (!str.CmpNoCase( wxT("ps") ) )
++            PlotCmd = PLOT_PS;
++        else if ( !str.CmpNoCase( wxT("svg") ) )
++            PlotCmd = PLOT_SVG;
++        else if ( !str.CmpNoCase( wxT("dxf") ) )
++            PlotCmd = PLOT_DXF;
++        else
++        {
++            parser.Usage();
++            wxPrintf(wxT("Unexpected plot format '%ls'.\n"), str.c_str());
++            return true;
++        }
++        PlotBW = parser.Found( _("plotx-bw") );
++        PlotSheetRef = parser.Found( _("plotx-sheetref") );
++    }
++
++    fn = parser.GetParam();
++    if( fn.GetExt() != SchematicFileExtension )
++    {
++        wxLogDebug( wxT( "eeschema file <%s> has the wrong extension. Changing extension to .sch." ), GetChars( fn.GetFullPath() ) );
++        fn.SetExt( PcbFileExtension );
++    }
++    if( !fn.FileExists())
++    {
++        wxPrintf( wxT("%ls: file '%ls' does not exist.\n" ), app.argv[0], fn.GetFullPath().c_str() );
++        return true;
++    }
++    wxSetWorkingDirectory( fn.GetPath() );
++
++    g_DrawBgColor = BLACK;
++    SeedLayers();
++    frame = new WinEDA_SchematicFrame( NULL, wxT( "EESchema" ),
++                                       wxPoint( 0, 0 ), wxSize( 600, 400 ) );
++    ActiveScreen = frame->GetScreen();
++#if 0 // enable this to see more of the GUI
++    app.SetTopWindow( frame );
++    frame->Show( true );
++#endif
++    if( !frame->LoadOneEEProject( fn.GetFullPath(), false ) )
++    {
++        fprintf( stderr, "%ls: can't load\n", fn.GetFullPath().c_str() );
++        return true;
++    }
++
++    if ( parser.Found( wxT("list-sheets") ) ) // class_drawsheetpath.h
++                                              // dialog_SVG_print.cpp:DIALOG_SVG_PRINT:PrintSVGDoc()
++    {
++        SCH_SHEET_LIST SheetList( 0 /* aSheet */ );
++        SCH_SHEET_PATH* sheetpath, *oldsheetpath;
++        SCH_SHEET_PATH list;
++        SCH_SCREEN* schscreen;
++
++        oldsheetpath = frame->GetSheet();
++        sheetpath = SheetList.GetFirst();
++        while ( sheetpath )
++        {
++            list.Clear();
++            if ( list.BuildSheetPathInfoFromSheetPathValue( sheetpath->Path() ) )
++            {
++                frame->m_CurrentSheet = &list;
++                frame->m_CurrentSheet->UpdateAllScreenReferences();
++                frame->SetSheetNumberAndCount();
++                schscreen = frame->m_CurrentSheet->LastScreen();
++                ActiveScreen = schscreen;
++
++                wxPrintf( sheetpath->Path() + _(" ")
++                    + sheetpath->PathHumanReadable() + _(" ")
++                    + sheetpath->Last()->GetFileName() + _(" ")
++                    + frame->GetUniqueFilenameForCurrentSheet( ) + wxT( ".sch\n") );
++            }
++            sheetpath = SheetList.GetNext();
++        }
++        frame->m_CurrentSheet = oldsheetpath;
++        frame->m_CurrentSheet->UpdateAllScreenReferences();
++        frame->SetSheetNumberAndCount();
++    }
++    else if ( PlotCmd == PLOT_PS ) // plotps.cpp
++    {
++        // values must be idential to plotps.cpp:PageFormatReq
++        enum PageFormatReq {
++            PAGE_SIZE_AUTO,
++            PAGE_SIZE_A4,
++            PAGE_SIZE_A
++        };
++
++        WinEDA_PlotPSFrame* PlotPSFrame = new WinEDA_PlotPSFrame( frame );
++        PlotPSFrame->m_Plot_Sheet_Ref->SetValue( PlotSheetRef );
++
++        // Strangely it seems that the plots come out right when 'A4' is
++        // selected, even if it's actually not A4 format. But when PAGE_SIZE_AUTO
++        // is selected, pages are cut off. Until we understand this better we
++        // always use A4.
++        PlotPSFrame->m_SizeOption->SetSelection( PAGE_SIZE_A4 );
++
++        PlotPSFrame->m_PlotPSColorOption->SetSelection( !PlotBW );
++        PlotPSFrame->OnPlotPsAllExecuteClick( DummyCmd );
++        delete PlotPSFrame;
++    }
++    else if ( PlotCmd == PLOT_SVG ) // dialog_SVG_print.cpp:DIALOG_SVG_PRINT::DrawSVGPage()
++    {
++        void ScriptedPrintSVGDoc( WinEDA_DrawFrame* frame, bool aPrintAll, bool aPrint_Sheet_Ref, bool aPrintBlackAndWhite );
++        ScriptedPrintSVGDoc( frame, true /* aPrintAll */, PlotSheetRef, PlotBW );
++    }
++    else if ( PlotCmd == PLOT_DXF ) // plotdxf.cpp:WinEDA_PlotDXFFrame::CreateDXFFile()
++    {
++        WinEDA_PlotDXFFrame* PlotDXFFrame = new WinEDA_PlotDXFFrame( frame );
++        PlotDXFFrame->m_Plot_Sheet_Ref->SetValue( PlotSheetRef );
++        PlotDXFFrame->m_PlotDXFColorOption->SetSelection( !PlotBW );
++        PlotDXFFrame->OnPlotDXFAllExecuteClick( DummyCmd );
++        delete PlotDXFFrame;
++    }
++    else if ( parser.Found( wxT("bom") ) ) // see build_BOM.cpp:DIALOG_BUILD_BOM::GenereListeOfItems()
++    {
++        DIALOG_BUILD_BOM* dlg = new DIALOG_BUILD_BOM( frame );
++
++        dlg->m_ListCmpbyRefItems->SetValue( true );
++        dlg->m_AddFootprintField->SetValue( true );
++        dlg->m_AddAllFields->SetValue( true );
++
++        fn = ActiveScreen->m_FileName;
++        fn.SetExt( wxT( "lst" ) );
++        dlg->GenereListeOfItems( fn.GetFullPath(), false /* aIncludeSubComponents */ );
++        delete dlg;
++    }
++    else if ( parser.Found( wxT("erc") ) ) // erc.cpp:DIALOG_ERC::TestErc()
++    {
++        DIALOG_ERC* dlg = new DIALOG_ERC( frame );
++        dlg->m_WriteResultOpt->SetValue( true );
++        dlg->TestErc( 0 /* messageList */ );
++        delete dlg;
++    }
++    else if ( parser.Found( wxT("netlist") ) ) // netlist_control.cpp:WinEDA_SchematicFrame::CreateNetlist()
++    {
++        frame->BuildNetListBase();
++        fn = ActiveScreen->m_FileName;
++        fn.SetExt( wxT( "net" ) );
++        frame->WriteNetListFile( NET_TYPE_PCBNEW /* aFormat */, fn.GetFullPath(), false /* aUse_netnames - only used for Spice */ );
++    }
++
++    delete frame;
++    return true;
++}
+diff -ruN kicad.orig/eeschema/eeschema_scripted.h kicad/eeschema/eeschema_scripted.h
+--- kicad.orig/eeschema/eeschema_scripted.h	1970-01-01 00:00:00.000000000 +0000
++++ kicad/eeschema/eeschema_scripted.h	2010-12-29 15:09:05.802259004 +0000
+@@ -0,0 +1,14 @@
++/////////////////////////////////////////////////////////////////////////////
++// Name:        eeschema_scripted.h
++// Copyright:   Wolfgang Spraul
++// Licence:     GPL v3 or higher
++/////////////////////////////////////////////////////////////////////////////
++
++class EESCHEMA_SCRIPTED
++{
++public:
++    EESCHEMA_SCRIPTED() { }
++    bool Run();
++};
++
++extern EESCHEMA_SCRIPTED g_EESchemaScripted;
+diff -ruN kicad.orig/eeschema/erc.cpp kicad/eeschema/erc.cpp
+--- kicad.orig/eeschema/erc.cpp	2010-12-31 18:11:47.751823001 +0000
++++ kicad/eeschema/erc.cpp	2010-12-29 15:43:01.970259008 +0000
+@@ -557,6 +557,7 @@
+         fn = g_RootSheet->m_AssociatedScreen->m_FileName;
+         fn.SetExt( wxT( "erc" ) );
+ 
++if (!g_IsScripted) {
+         wxFileDialog dlg( this, _( "ERC File" ), fn.GetPath(), fn.GetFullName(),
+                           _( "Electronic rule check file (.erc)|*.erc" ),
+                           wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
+@@ -570,6 +570,8 @@
+             ExecuteFile( this, wxGetApp().GetEditorName(),
+                          QuoteFullPath( fn ) );
+         }
++} else
++    WriteDiagnosticERC( fn.GetFullPath() );
+     }
+ }
+ 
 diff -ruN kicad.orig/include/common.h kicad/include/common.h
 --- kicad.orig/include/common.h	2010-10-19 08:48:07.000000000 +0000
-+++ kicad/include/common.h	2010-12-22 18:47:54.974932729 +0000
++++ kicad/include/common.h	2010-12-28 13:58:57.861392001 +0000
 @@ -6,6 +6,8 @@
  #ifndef __INCLUDE__COMMON_H__
  #define __INCLUDE__COMMON_H__ 1
  
-+extern bool g_scripted;
++extern bool g_IsScripted;
 +
  #include "wx/confbase.h"
  #include "wx/fileconf.h"
@@ -72,12 +448,12 @@ diff -ruN kicad.orig/include/wxPcbStruct.h kicad/include/wxPcbStruct.h
  
 diff -ruN kicad.orig/pcbnew/build_BOM_from_board.cpp kicad/pcbnew/build_BOM_from_board.cpp
 --- kicad.orig/pcbnew/build_BOM_from_board.cpp	2010-10-19 08:48:07.000000000 +0000
-+++ kicad/pcbnew/build_BOM_from_board.cpp	2010-12-24 21:05:59.426781921 +0000
++++ kicad/pcbnew/build_BOM_from_board.cpp	2010-12-28 13:59:39.089392001 +0000
 @@ -64,6 +64,7 @@
      fn = GetScreen()->m_FileName;
      fn.SetExt( CsvFileExtension );
  
-+    if (!g_scripted) {
++    if (!g_IsScripted) {
      wxFileDialog dlg( this, _( "Save Bill of Materials" ), wxGetCwd(),
                        fn.GetFullName(), CsvFileWildcard,
                        wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
@@ -124,12 +500,12 @@ diff -ruN kicad.orig/pcbnew/drc_stuff.h kicad/pcbnew/drc_stuff.h
  
 diff -ruN kicad.orig/pcbnew/gendrill.cpp kicad/pcbnew/gendrill.cpp
 --- kicad.orig/pcbnew/gendrill.cpp	2010-10-19 08:48:07.000000000 +0000
-+++ kicad/pcbnew/gendrill.cpp	2010-12-23 13:58:26.526933001 +0000
++++ kicad/pcbnew/gendrill.cpp	2010-12-28 13:59:29.321392003 +0000
 @@ -307,6 +307,43 @@
              fn.SetName( fn.GetName() + layer_extend );
              fn.SetExt( DrillFileExtension );
  
-+            if (g_scripted)
++            if (g_IsScripted)
 +            {
 +                FILE* excellon_dest = wxFopen( fn.GetFullPath(), wxT( "w" ) );
 +                if( excellon_dest == 0 )
@@ -173,7 +549,7 @@ diff -ruN kicad.orig/pcbnew/gendrill.cpp kicad/pcbnew/gendrill.cpp
                               PLOT_FORMAT_DXF );
                  break;
              }
-+            } // !g_scripted
++            } // !g_IsScripted
  
              if( !ExistsBuriedVias )
                  break;
@@ -200,7 +576,7 @@ diff -ruN kicad.orig/pcbnew/pcbnew.cpp kicad/pcbnew/pcbnew.cpp
      if( m_Checker && m_Checker->IsAnotherRunning() )
 diff -ruN kicad.orig/pcbnew/pcbnew_scripted.cpp kicad/pcbnew/pcbnew_scripted.cpp
 --- kicad.orig/pcbnew/pcbnew_scripted.cpp	1970-01-01 00:00:00.000000000 +0000
-+++ kicad/pcbnew/pcbnew_scripted.cpp	2010-12-28 09:51:20.189470002 +0000
++++ kicad/pcbnew/pcbnew_scripted.cpp	2010-12-28 13:58:44.257392001 +0000
 @@ -0,0 +1,552 @@
 +/////////////////////////////////////////////////////////////////////////////
 +// Name:        pcbnew_scripted.cpp
@@ -251,10 +627,10 @@ diff -ruN kicad.orig/pcbnew/pcbnew_scripted.cpp kicad/pcbnew/pcbnew_scripted.cpp
 +     { wxCMD_LINE_SWITCH, wxT("h"), wxT("help"), wxT("displays help on the command line parameters"),
 +          wxCMD_LINE_VAL_NONE, wxCMD_LINE_OPTION_HELP },
 +     { wxCMD_LINE_SWITCH, wxT("d"), wxT("drill"), wxT("generates a .drl drill file") },
-+     { wxCMD_LINE_SWITCH, wxT("list-layers"), wxT("list-layers"), wxT("lists the name of all enabled layers in the .brd file") },
++     { wxCMD_LINE_SWITCH, wxT("list-layers"), wxT("list-layers"), wxT("lists the names of all enabled layers in the .brd file") },
 +     { wxCMD_LINE_OPTION, wxT("p"), wxT("plot"), wxT("plots the board [hpgl|gerber|ps|ps_a4|dxf]"),
 +          wxCMD_LINE_VAL_STRING },
-+     { wxCMD_LINE_OPTION, wxT("l"), wxT("layers"), wxT("comma separated list of layer names (default: all layers)"),
++     { wxCMD_LINE_OPTION, wxT("l"), wxT("layers"), wxT("comma separated list of layer names (default: all enabled layers)"),
 +          wxCMD_LINE_VAL_STRING },
 +     { wxCMD_LINE_OPTION, wxT("ps-pads-drill-opt"), wxT("ps-pads-drill-opt"), wxT("Postscript pads drill option [none|small|real] (default:small)"),
 +          wxCMD_LINE_VAL_STRING },
@@ -284,7 +660,7 @@ diff -ruN kicad.orig/pcbnew/pcbnew_scripted.cpp kicad/pcbnew/pcbnew_scripted.cpp
 +    WinEDA_App& app = wxGetApp();
 +    if (app.argc < 2 || app.argv[1][0] != '-')
 +        return false;
-+    g_scripted = true;
++    g_IsScripted = true;
 +    wxLog::EnableLogging(false); // this should suppress some wx dialogs
 +    app.InitEDA_Appl( wxT( "PCBnew" ), APP_TYPE_PCBNEW );
 +
@@ -767,12 +1143,12 @@ diff -ruN kicad.orig/pcbnew/pcbnew_scripted.h kicad/pcbnew/pcbnew_scripted.h
 +bool Pcbnew_Scripted();
 diff -ruN kicad.orig/pcbnew/xchgmod.cpp kicad/pcbnew/xchgmod.cpp
 --- kicad.orig/pcbnew/xchgmod.cpp	2010-10-19 08:48:07.000000000 +0000
-+++ kicad/pcbnew/xchgmod.cpp	2010-12-24 21:11:13.642781922 +0000
++++ kicad/pcbnew/xchgmod.cpp	2010-12-28 13:59:06.985392003 +0000
 @@ -577,6 +577,7 @@
      wildcard = _( "Component files (." ) + NetCmpExtBuffer + wxT( ")|*." ) +
                 NetCmpExtBuffer;
  
-+    if (!g_scripted) {
++    if (!g_IsScripted) {
      wxFileDialog dlg( this, _( "Save Component Files" ), wxGetCwd(),
                        fn.GetFullName(), wildcard,
                        wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
