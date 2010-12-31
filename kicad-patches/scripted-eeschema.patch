@@ -1,0 +1,105 @@
+diff -ruN kicad.orig/eeschema/CMakeLists.txt kicad/eeschema/CMakeLists.txt
+--- kicad.orig/eeschema/CMakeLists.txt	2010-10-19 08:48:07.000000000 +0000
++++ kicad/eeschema/CMakeLists.txt	2010-12-28 13:43:28.365392001 +0000
+@@ -83,6 +83,7 @@
+     eeredraw.cpp
+     eeschema.cpp
+     eeschema_config.cpp
++    eeschema_scripted.cpp
+     erc.cpp
+     events_called_functions_for_edit.cpp
+     files-io.cpp
+diff -ruN kicad.orig/eeschema/dialog_build_BOM.h kicad/eeschema/dialog_build_BOM.h
+--- kicad.orig/eeschema/dialog_build_BOM.h	2010-10-19 08:48:07.000000000 +0000
++++ kicad/eeschema/dialog_build_BOM.h	2010-12-29 14:53:53.210259002 +0000
+@@ -12,6 +12,7 @@
+ 
+ class DIALOG_BUILD_BOM : public DIALOG_BUILD_BOM_BASE
+ {
++friend class EESCHEMA_SCRIPTED;
+ private:
+     WinEDA_DrawFrame *  m_Parent;
+     wxConfig*           m_Config;
+diff -ruN kicad.orig/eeschema/dialog_erc.h kicad/eeschema/dialog_erc.h
+--- kicad.orig/eeschema/dialog_erc.h	2010-10-19 08:48:07.000000000 +0000
++++ kicad/eeschema/dialog_erc.h	2010-12-29 15:45:04.002259005 +0000
+@@ -30,6 +30,7 @@
+ 
+ class DIALOG_ERC : public DIALOG_ERC_BASE
+ {
++friend class EESCHEMA_SCRIPTED;
+     DECLARE_EVENT_TABLE()
+ 
+ private:
+diff -ruN kicad.orig/eeschema/dialog_SVG_print.cpp kicad/eeschema/dialog_SVG_print.cpp
+--- kicad.orig/eeschema/dialog_SVG_print.cpp	2010-10-19 08:48:07.000000000 +0000
++++ kicad/eeschema/dialog_SVG_print.cpp	2010-12-31 14:59:18.871823000 +0000
+@@ -33,6 +33,7 @@
+ 
+ class DIALOG_SVG_PRINT : public DIALOG_SVG_PRINT_base
+ {
++friend void ScriptedPrintSVGDoc( WinEDA_DrawFrame* frame, bool aPrintAll, bool aPrint_Sheet_Ref, bool aPrintBlackAndWhite );
+ private:
+     WinEDA_DrawFrame * m_Parent;
+     wxConfig* m_Config;
+@@ -57,6 +58,19 @@
+                    bool aPrint_Sheet_Ref = false);
+ };
+ 
++void ScriptedPrintSVGDoc( WinEDA_DrawFrame* frame, bool aPrintAll, bool aPrint_Sheet_Ref, bool aPrintBlackAndWhite )
++{
++    // TBD: It would be better to iterate over the pages ourselves and use
++    //      DrawSVGPage() directly, bypassing the GUI dialog...
++    class DIALOG_SVG_PRINT* dlg = new DIALOG_SVG_PRINT( frame );
++    dlg->m_DialogPenWidth->SetValue(
++        ReturnStringFromValue(g_UserUnit, g_DrawDefaultLineThickness,
++                              dlg->m_Parent->m_InternalUnits ) );
++    dlg->m_ModeColorOption->SetSelection( aPrintBlackAndWhite );
++    dlg->PrintSVGDoc( aPrintAll, aPrint_Sheet_Ref );
++    delete dlg;
++}
++
+ 
+ /* Prepare the data structures of print management and display the dialog
+  * window for printing sheets.
+diff -ruN kicad.orig/eeschema/eeschema.cpp kicad/eeschema/eeschema.cpp
+--- kicad.orig/eeschema/eeschema.cpp	2010-12-28 15:30:43.309392002 +0000
++++ kicad/eeschema/eeschema.cpp	2010-12-28 15:38:23.073392001 +0000
+@@ -15,6 +15,7 @@
+ #include "program.h"
+ #include "general.h"
+ #include "protos.h"
++#include "eeschema_scripted.h"
+ 
+ #include <wx/snglinst.h>
+ 
+@@ -128,6 +129,9 @@
+ 
+     g_DebugLevel = 0;   // Debug level */
+ 
++    if ( g_EESchemaScripted.Run() )
++        return false;
++
+     InitEDA_Appl( wxT( "EESchema" ), APP_TYPE_EESCHEMA );
+ 
+     if( m_Checker && m_Checker->IsAnotherRunning() )
+diff -ruN kicad.orig/eeschema/erc.cpp kicad/eeschema/erc.cpp
+--- kicad.orig/eeschema/erc.cpp	2010-12-31 18:11:47.751823001 +0000
++++ kicad/eeschema/erc.cpp	2010-12-29 15:43:01.970259008 +0000
+@@ -557,6 +557,7 @@
+         fn = g_RootSheet->m_AssociatedScreen->m_FileName;
+         fn.SetExt( wxT( "erc" ) );
+ 
++if (!g_IsScripted) {
+         wxFileDialog dlg( this, _( "ERC File" ), fn.GetPath(), fn.GetFullName(),
+                           _( "Electronic rule check file (.erc)|*.erc" ),
+                           wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
+@@ -570,6 +570,8 @@
+             ExecuteFile( this, wxGetApp().GetEditorName(),
+                          QuoteFullPath( fn ) );
+         }
++} else
++    WriteDiagnosticERC( fn.GetFullPath() );
+     }
+ }
+ 

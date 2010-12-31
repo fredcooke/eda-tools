@@ -1,0 +1,70 @@
+diff -ruN kicad.orig/common/confirm.cpp kicad/common/confirm.cpp
+--- kicad.orig/common/confirm.cpp	2010-10-19 08:48:07.000000000 +0000
++++ kicad/common/confirm.cpp	2010-12-28 13:58:14.765392001 +0000
+@@ -66,6 +66,7 @@
+                              * See not above as to why this doesn't work. */
+ }
+ 
++bool g_IsScripted = false;
+ 
+ /* Display an error or warning message.
+  * If display time > 0 the dialog disappears after displayTime 0.1 seconds
+@@ -75,6 +76,12 @@
+ {
+     wxMessageDialog* dialog;
+ 
++    if (g_IsScripted)
++    {
++        wxFprintf( stderr, text + _("\n") );
++        return;
++    }
++
+     if( displaytime > 0 )
+         dialog = new WinEDA_MessageDialog( parent, text, _( "Warning" ),
+                                            wxOK | wxICON_INFORMATION,
+@@ -95,6 +102,11 @@
+ {
+     wxMessageDialog* dialog;
+ 
++    if (g_IsScripted)
++    {
++        wxPrintf( text + _("\n") );
++        return;
++    }
+     dialog = new WinEDA_MessageDialog( parent, text, _( "Info:" ),
+                                        wxOK | wxICON_INFORMATION, displaytime );
+ 
+diff -ruN kicad.orig/common/edaappl.cpp kicad/common/edaappl.cpp
+--- kicad.orig/common/edaappl.cpp	2010-10-19 08:48:07.000000000 +0000
++++ kicad/common/edaappl.cpp	2010-12-28 13:58:28.045392001 +0000
+@@ -272,6 +272,7 @@
+     wxString EnvLang;
+ 
+     m_Id = aId;
++if (!g_IsScripted)
+     m_Checker = new wxSingleInstanceChecker( aName.Lower() + wxT( "-" ) +
+                                             wxGetUserId() );
+ 
+diff -ruN kicad.orig/include/common.h kicad/include/common.h
+--- kicad.orig/include/common.h	2010-10-19 08:48:07.000000000 +0000
++++ kicad/include/common.h	2010-12-28 13:58:57.861392001 +0000
+@@ -6,6 +6,8 @@
+ #ifndef __INCLUDE__COMMON_H__
+ #define __INCLUDE__COMMON_H__ 1
+ 
++extern bool g_IsScripted;
++
+ #include "wx/confbase.h"
+ #include "wx/fileconf.h"
+ 
+diff -ruN kicad.orig/include/wxPcbStruct.h kicad/include/wxPcbStruct.h
+--- kicad.orig/include/wxPcbStruct.h	2010-10-19 08:48:07.000000000 +0000
++++ kicad/include/wxPcbStruct.h	2010-12-24 11:03:20.674781923 +0000
+@@ -50,6 +50,7 @@
+ class WinEDA_PcbFrame : public WinEDA_BasePcbFrame
+ {
+     friend class PCB_LAYER_WIDGET;
++    friend bool Pcbnew_Scripted();
+ 
+ protected:
+ 

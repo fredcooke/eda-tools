@@ -1,0 +1,147 @@
+diff -ruN kicad.orig/pcbnew/build_BOM_from_board.cpp kicad/pcbnew/build_BOM_from_board.cpp
+--- kicad.orig/pcbnew/build_BOM_from_board.cpp	2010-10-19 08:48:07.000000000 +0000
++++ kicad/pcbnew/build_BOM_from_board.cpp	2010-12-28 13:59:39.089392001 +0000
+@@ -64,6 +64,7 @@
+     fn = GetScreen()->m_FileName;
+     fn.SetExt( CsvFileExtension );
+ 
++    if (!g_IsScripted) {
+     wxFileDialog dlg( this, _( "Save Bill of Materials" ), wxGetCwd(),
+                       fn.GetFullName(), CsvFileWildcard,
+                       wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
+@@ -72,6 +73,7 @@
+         return;
+ 
+     fn = dlg.GetPath();
++    }
+ 
+     FichBom = wxFopen( fn.GetFullPath(), wxT( "wt" ) );
+ 
+diff -ruN kicad.orig/pcbnew/CMakeLists.txt kicad/pcbnew/CMakeLists.txt
+--- kicad.orig/pcbnew/CMakeLists.txt	2010-10-19 08:48:07.000000000 +0000
++++ kicad/pcbnew/CMakeLists.txt	2010-12-22 02:19:48.597291239 +0000
+@@ -142,6 +142,7 @@
+     onrightclick.cpp
+     pcbnew.cpp
+     pcbnew_config.cpp
++    pcbnew_scripted.cpp
+     pcbplot.cpp
+     plotgerb.cpp
+     plothpgl.cpp
+diff -ruN kicad.orig/pcbnew/dialog_gendrill.h kicad/pcbnew/dialog_gendrill.h
+--- kicad.orig/pcbnew/dialog_gendrill.h	2010-10-19 08:48:07.000000000 +0000
++++ kicad/pcbnew/dialog_gendrill.h	2010-12-22 18:23:00.054932711 +0000
+@@ -12,6 +12,7 @@
+ 
+ class DIALOG_GENDRILL: public DIALOG_GENDRILL_BASE
+ {
++friend bool Pcbnew_Scripted();
+ 
+ private:
+ 	WinEDA_PcbFrame*  m_Parent;
+diff -ruN kicad.orig/pcbnew/drc_stuff.h kicad/pcbnew/drc_stuff.h
+--- kicad.orig/pcbnew/drc_stuff.h	2010-10-19 08:48:07.000000000 +0000
++++ kicad/pcbnew/drc_stuff.h	2010-12-24 10:01:41.438781921 +0000
+@@ -136,6 +136,7 @@
+ class DRC
+ {
+     friend class DIALOG_DRC_CONTROL;
++    friend bool Pcbnew_Scripted();
+ 
+ private:
+ 
+diff -ruN kicad.orig/pcbnew/gendrill.cpp kicad/pcbnew/gendrill.cpp
+--- kicad.orig/pcbnew/gendrill.cpp	2010-10-19 08:48:07.000000000 +0000
++++ kicad/pcbnew/gendrill.cpp	2010-12-28 13:59:29.321392003 +0000
+@@ -307,6 +307,43 @@
+             fn.SetName( fn.GetName() + layer_extend );
+             fn.SetExt( DrillFileExtension );
+ 
++            if (g_IsScripted)
++            {
++                FILE* excellon_dest = wxFopen( fn.GetFullPath(), wxT( "w" ) );
++                if( excellon_dest == 0 )
++                {
++                    printf("Unable to create %ls.\n", fn.GetFullPath().c_str());
++                    exit(0);
++                }
++                Create_Drill_File_EXCELLON( excellon_dest, s_HoleListBuffer,
++                                            s_ToolListBuffer );
++
++                switch( m_Choice_Drill_Map->GetSelection() )
++                {
++                case 0:
++                    break;
++    
++                case 1:
++                    GenDrillMap( fn.GetPath(), s_HoleListBuffer, s_ToolListBuffer,
++                                 PLOT_FORMAT_HPGL );
++                    break;
++    
++                case 2:
++                    GenDrillMap( fn.GetPath(), s_HoleListBuffer, s_ToolListBuffer,
++                                 PLOT_FORMAT_POST );
++                    break;
++    
++                case 3:
++                    GenDrillMap( fn.GetPath(), s_HoleListBuffer, s_ToolListBuffer,
++                                 PLOT_FORMAT_GERBER );
++                    break;
++    
++                case 4:
++                    GenDrillMap( fn.GetPath(), s_HoleListBuffer, s_ToolListBuffer,
++                                 PLOT_FORMAT_DXF );
++                    break;
++                }
++            } else {
+             wxFileDialog dlg( this, _( "Save Drill File" ), fn.GetPath(),
+                               fn.GetFullName(), DrillFileWildcard,
+                               wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
+@@ -352,6 +389,7 @@
+                              PLOT_FORMAT_DXF );
+                 break;
+             }
++            } // !g_IsScripted
+ 
+             if( !ExistsBuriedVias )
+                 break;
+diff -ruN kicad.orig/pcbnew/pcbnew.cpp kicad/pcbnew/pcbnew.cpp
+--- kicad.orig/pcbnew/pcbnew.cpp	2010-10-19 08:48:07.000000000 +0000
++++ kicad/pcbnew/pcbnew.cpp	2010-12-28 09:18:32.577470003 +0000
+@@ -29,6 +29,7 @@
+ #include "build_version.h"
+ 
+ #include "protos.h"
++#include "pcbnew_scripted.h"
+ 
+ // Colors for layers and items
+ COLORS_DESIGN_SETTINGS g_ColorsSettings;
+@@ -103,6 +104,9 @@
+     wxFileName       fn;
+     WinEDA_PcbFrame* frame = NULL;
+ 
++    if( Pcbnew_Scripted() )
++        return false;
++
+     InitEDA_Appl( wxT( "PCBnew" ), APP_TYPE_PCBNEW );
+ 
+     if( m_Checker && m_Checker->IsAnotherRunning() )
+diff -ruN kicad.orig/pcbnew/xchgmod.cpp kicad/pcbnew/xchgmod.cpp
+--- kicad.orig/pcbnew/xchgmod.cpp	2010-10-19 08:48:07.000000000 +0000
++++ kicad/pcbnew/xchgmod.cpp	2010-12-28 13:59:06.985392003 +0000
+@@ -577,6 +577,7 @@
+     wildcard = _( "Component files (." ) + NetCmpExtBuffer + wxT( ")|*." ) +
+                NetCmpExtBuffer;
+ 
++    if (!g_IsScripted) {
+     wxFileDialog dlg( this, _( "Save Component Files" ), wxGetCwd(),
+                       fn.GetFullName(), wildcard,
+                       wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
+@@ -585,6 +586,7 @@
+         return;
+ 
+     fn = dlg.GetPath();
++    }
+ 
+     FichCmp = wxFopen( fn.GetFullPath(), wxT( "wt" ) );
+     if( FichCmp == NULL )

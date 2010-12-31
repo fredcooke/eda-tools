@@ -13,4 +13,6 @@ erc-exceptions.patch
 
 # cmdline options for eeschema and pcbnew
 scripted-new.patch
-scripted.patch
+scripted-common.patch
+scripted-eeschema.patch
+scripted-pcbnew.patch
