@@ -1,6 +1,6 @@
 diff -ruN kicad.orig/common/confirm.cpp kicad/common/confirm.cpp
 --- kicad.orig/common/confirm.cpp	2010-10-19 08:48:07.000000000 +0000
-+++ kicad/common/confirm.cpp	2010-12-28 13:58:14.765392001 +0000
++++ kicad/common/confirm.cpp	2011-01-02 13:04:39.339823004 +0000
 @@ -66,6 +66,7 @@
                               * See not above as to why this doesn't work. */
  }
@@ -36,7 +36,7 @@ diff -ruN kicad.orig/common/confirm.cpp kicad/common/confirm.cpp
  
 diff -ruN kicad.orig/common/edaappl.cpp kicad/common/edaappl.cpp
 --- kicad.orig/common/edaappl.cpp	2010-10-19 08:48:07.000000000 +0000
-+++ kicad/common/edaappl.cpp	2010-12-28 13:58:28.045392001 +0000
++++ kicad/common/edaappl.cpp	2011-01-02 13:04:39.343823004 +0000
 @@ -272,6 +272,7 @@
      wxString EnvLang;
  
@@ -45,21 +45,30 @@ diff -ruN kicad.orig/common/edaappl.cpp kicad/common/edaappl.cpp
      m_Checker = new wxSingleInstanceChecker( aName.Lower() + wxT( "-" ) +
                                              wxGetUserId() );
  
-diff -ruN kicad.orig/include/common.h kicad/include/common.h
---- kicad.orig/include/common.h	2010-10-19 08:48:07.000000000 +0000
-+++ kicad/include/common.h	2010-12-28 13:58:57.861392001 +0000
-@@ -6,6 +6,8 @@
- #ifndef __INCLUDE__COMMON_H__
- #define __INCLUDE__COMMON_H__ 1
+diff -ruN kicad.orig/include/appl_wxstruct.h kicad/include/appl_wxstruct.h
+--- kicad.orig/include/appl_wxstruct.h	2010-10-19 08:48:07.000000000 +0000
++++ kicad/include/appl_wxstruct.h	2011-01-02 15:13:47.532837657 +0000
+@@ -32,6 +32,8 @@
+ /*  Class representing the entire Application */
+ /**********************************************/
  
 +extern bool g_IsScripted;
 +
- #include "wx/confbase.h"
- #include "wx/fileconf.h"
+ class WinEDA_App : public wxApp
+ {
+ public:
+@@ -95,6 +97,8 @@
+     void      InitEDA_Appl( const wxString& aName,
+                             id_app_type     aId = APP_TYPE_UNKOWN );
  
++    virtual int OnRun() { return g_IsScripted ? 0 : wxApp::OnRun(); }
++
+     bool      SetLanguage( bool first_time = FALSE );
+ 
+     /** Function AddMenuLanguageList
 diff -ruN kicad.orig/include/wxPcbStruct.h kicad/include/wxPcbStruct.h
 --- kicad.orig/include/wxPcbStruct.h	2010-10-19 08:48:07.000000000 +0000
-+++ kicad/include/wxPcbStruct.h	2010-12-24 11:03:20.674781923 +0000
++++ kicad/include/wxPcbStruct.h	2011-01-02 13:04:39.399823002 +0000
 @@ -50,6 +50,7 @@
  class WinEDA_PcbFrame : public WinEDA_BasePcbFrame
  {

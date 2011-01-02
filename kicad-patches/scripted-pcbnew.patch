@@ -1,6 +1,6 @@
 diff -ruN kicad.orig/pcbnew/build_BOM_from_board.cpp kicad/pcbnew/build_BOM_from_board.cpp
 --- kicad.orig/pcbnew/build_BOM_from_board.cpp	2010-10-19 08:48:07.000000000 +0000
-+++ kicad/pcbnew/build_BOM_from_board.cpp	2010-12-28 13:59:39.089392001 +0000
++++ kicad/pcbnew/build_BOM_from_board.cpp	2011-01-02 16:02:51.792837658 +0000
 @@ -64,6 +64,7 @@
      fn = GetScreen()->m_FileName;
      fn.SetExt( CsvFileExtension );
@@ -19,7 +19,7 @@ diff -ruN kicad.orig/pcbnew/build_BOM_from_board.cpp kicad/pcbnew/build_BOM_from
  
 diff -ruN kicad.orig/pcbnew/CMakeLists.txt kicad/pcbnew/CMakeLists.txt
 --- kicad.orig/pcbnew/CMakeLists.txt	2010-10-19 08:48:07.000000000 +0000
-+++ kicad/pcbnew/CMakeLists.txt	2010-12-22 02:19:48.597291239 +0000
++++ kicad/pcbnew/CMakeLists.txt	2011-01-02 13:04:39.451823002 +0000
 @@ -142,6 +142,7 @@
      onrightclick.cpp
      pcbnew.cpp
@@ -30,7 +30,7 @@ diff -ruN kicad.orig/pcbnew/CMakeLists.txt kicad/pcbnew/CMakeLists.txt
      plothpgl.cpp
 diff -ruN kicad.orig/pcbnew/dialog_gendrill.h kicad/pcbnew/dialog_gendrill.h
 --- kicad.orig/pcbnew/dialog_gendrill.h	2010-10-19 08:48:07.000000000 +0000
-+++ kicad/pcbnew/dialog_gendrill.h	2010-12-22 18:23:00.054932711 +0000
++++ kicad/pcbnew/dialog_gendrill.h	2011-01-02 13:04:39.459823002 +0000
 @@ -12,6 +12,7 @@
  
  class DIALOG_GENDRILL: public DIALOG_GENDRILL_BASE
@@ -41,7 +41,7 @@ diff -ruN kicad.orig/pcbnew/dialog_gendrill.h kicad/pcbnew/dialog_gendrill.h
  	WinEDA_PcbFrame*  m_Parent;
 diff -ruN kicad.orig/pcbnew/drc_stuff.h kicad/pcbnew/drc_stuff.h
 --- kicad.orig/pcbnew/drc_stuff.h	2010-10-19 08:48:07.000000000 +0000
-+++ kicad/pcbnew/drc_stuff.h	2010-12-24 10:01:41.438781921 +0000
++++ kicad/pcbnew/drc_stuff.h	2011-01-02 13:04:39.507823003 +0000
 @@ -136,6 +136,7 @@
  class DRC
  {
@@ -52,7 +52,7 @@ diff -ruN kicad.orig/pcbnew/drc_stuff.h kicad/pcbnew/drc_stuff.h
  
 diff -ruN kicad.orig/pcbnew/gendrill.cpp kicad/pcbnew/gendrill.cpp
 --- kicad.orig/pcbnew/gendrill.cpp	2010-10-19 08:48:07.000000000 +0000
-+++ kicad/pcbnew/gendrill.cpp	2010-12-28 13:59:29.321392003 +0000
++++ kicad/pcbnew/gendrill.cpp	2011-01-02 13:04:39.515823004 +0000
 @@ -307,6 +307,43 @@
              fn.SetName( fn.GetName() + layer_extend );
              fn.SetExt( DrillFileExtension );
@@ -107,7 +107,7 @@ diff -ruN kicad.orig/pcbnew/gendrill.cpp kicad/pcbnew/gendrill.cpp
                  break;
 diff -ruN kicad.orig/pcbnew/pcbnew.cpp kicad/pcbnew/pcbnew.cpp
 --- kicad.orig/pcbnew/pcbnew.cpp	2010-10-19 08:48:07.000000000 +0000
-+++ kicad/pcbnew/pcbnew.cpp	2010-12-28 09:18:32.577470003 +0000
++++ kicad/pcbnew/pcbnew.cpp	2011-01-02 17:27:41.612837657 +0000
 @@ -29,6 +29,7 @@
  #include "build_version.h"
  
@@ -120,15 +120,26 @@ diff -ruN kicad.orig/pcbnew/pcbnew.cpp kicad/pcbnew/pcbnew.cpp
      wxFileName       fn;
      WinEDA_PcbFrame* frame = NULL;
  
-+    if( Pcbnew_Scripted() )
-+        return false;
++    if ( argc >= 2 && argv[1][0] == '-' )
++        return Pcbnew_Scripted();
 +
      InitEDA_Appl( wxT( "PCBnew" ), APP_TYPE_PCBNEW );
  
      if( m_Checker && m_Checker->IsAnotherRunning() )
+diff -ruN kicad.orig/pcbnew/pcbnew.h kicad/pcbnew/pcbnew.h
+--- kicad.orig/pcbnew/pcbnew.h	2010-10-19 08:48:07.000000000 +0000
++++ kicad/pcbnew/pcbnew.h	2011-01-02 16:02:38.324837657 +0000
+@@ -59,6 +59,7 @@
+ 
+ extern const wxString g_FootprintLibFileWildcard;   // Wildcard for footprint libraries filesnames
+ 
++extern bool g_IsScripted;
+ 
+ extern bool        g_Track_45_Only_Allowed;
+ extern bool        g_Alternate_Track_Posture;
 diff -ruN kicad.orig/pcbnew/xchgmod.cpp kicad/pcbnew/xchgmod.cpp
 --- kicad.orig/pcbnew/xchgmod.cpp	2010-10-19 08:48:07.000000000 +0000
-+++ kicad/pcbnew/xchgmod.cpp	2010-12-28 13:59:06.985392003 +0000
++++ kicad/pcbnew/xchgmod.cpp	2011-01-02 13:04:39.551823004 +0000
 @@ -577,6 +577,7 @@
      wildcard = _( "Component files (." ) + NetCmpExtBuffer + wxT( ")|*." ) +
                 NetCmpExtBuffer;

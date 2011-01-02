@@ -1,7 +1,7 @@
 diff -ruN kicad.orig/eeschema/eeschema_scripted.cpp kicad/eeschema/eeschema_scripted.cpp
 --- kicad.orig/eeschema/eeschema_scripted.cpp	1970-01-01 00:00:00.000000000 +0000
-+++ kicad/eeschema/eeschema_scripted.cpp	2010-12-31 18:03:37.871822958 +0000
-@@ -0,0 +1,251 @@
++++ kicad/eeschema/eeschema_scripted.cpp	2011-01-02 17:25:27.428837658 +0000
+@@ -0,0 +1,237 @@
 +/////////////////////////////////////////////////////////////////////////////
 +// Name:        eeschema_scripted.cpp
 +// Copyright:   Werner Almesberger, Wolfgang Spraul
@@ -34,11 +34,10 @@ diff -ruN kicad.orig/eeschema/eeschema_scripted.cpp kicad/eeschema/eeschema_scri
 +
 +     { wxCMD_LINE_SWITCH, wxT("l"), wxT("list-sheets"), wxT("list schematics pages") },
 +
-+     { wxCMD_LINE_OPTION, wxT("px"), wxT("plotx"), wxT("plots the board [ps|svg|dxf]"),
++     { wxCMD_LINE_OPTION, wxT("p"), wxT("plot"), wxT("plots the board [ps|svg|dxf]"),
 +          wxCMD_LINE_VAL_STRING },
-+     { wxCMD_LINE_SWITCH, wxT("plotx-bw"), wxT("plotx-bw"), wxT("plot: black & white (default: color)") },
-+     { wxCMD_LINE_SWITCH, wxT("plotx-sheetref"), wxT("plotx-sheetref"), wxT("plot: print sheet reference (default: off)") },
-+     { wxCMD_LINE_SWITCH, wxT("p"), wxT("plot"), wxT("plots the schematics (deprecated, use --plotx=ps --plotx-bw)") },
++     { wxCMD_LINE_SWITCH, wxT("plot-bw"), wxT("plot-bw"), wxT("plot: black & white (default: color)") },
++     { wxCMD_LINE_SWITCH, wxT("plot-sheetref"), wxT("plot-sheetref"), wxT("plot: print sheet reference (default: off)") },
 +
 +     { wxCMD_LINE_SWITCH, wxT("b"), wxT("bom"), wxT("generate bill of materials (.bom)") },
 +     { wxCMD_LINE_SWITCH, wxT("e"), wxT("erc"), wxT("generate electric rules check (.erc) file") },
@@ -62,8 +61,6 @@ diff -ruN kicad.orig/eeschema/eeschema_scripted.cpp kicad/eeschema/eeschema_scri
 +    int i;
 +
 +    WinEDA_App& app = wxGetApp();
-+    if (app.argc < 2 || app.argv[1][0] != '-')
-+        return false;
 +    g_IsScripted = true;
 +    wxLog::EnableLogging(false); // this should suppress some wx dialogs
 +    app.InitEDA_Appl( wxT( "EESchema" ), APP_TYPE_EESCHEMA );
@@ -72,23 +69,22 @@ diff -ruN kicad.orig/eeschema/eeschema_scripted.cpp kicad/eeschema/eeschema_scri
 +    parser.SetDesc(g_cmdLineDesc);
 +    parser.SetCmdLine(app.argc, app.argv);
 +    if (parser.Parse())
-+        return true;
++        return false;
 +
 +    i = parser.Found( _("list-sheets") )
 +        + parser.Found( _("plot") )
-+        + parser.Found( _("plotx") )
 +        + parser.Found( _("bom") )
 +        + parser.Found( _("erc") )
 +        + parser.Found( _("netlist") );
 +    if ( !i )
 +    {
-+        wxPrintf(wxT("One of --list-sheets --plot --plotx --bom --erc --netlist must be given.\n"));
-+        return true;
++        wxFprintf( stderr, wxT("One of --list-sheets --plot --bom --erc --netlist must be given.\n"));
++        return false;
 +    }
 +    if ( i > 1 )
 +    {
-+        wxPrintf(wxT("Only one of --list-sheets --plot --plotx --bom --erc --netlist may be given at a time.\n"));
-+        return true;
++        wxFprintf( stderr, wxT("Only one of --list-sheets --plot --bom --erc --netlist may be given at a time.\n"));
++        return false;
 +    }
 +
 +    // parse plotting parameters
@@ -102,14 +98,7 @@ diff -ruN kicad.orig/eeschema/eeschema_scripted.cpp kicad/eeschema/eeschema_scri
 +    bool PlotSheetRef;
 +
 +    PlotCmd = PLOT_NONE;
-+    if ( parser.Found( wxT("plot") ) ) // legacy parameter originally introduced by
-+                                       // Werner, still used in schhist and other places
-+    {
-+        PlotCmd = PLOT_PS;
-+        PlotBW = true;
-+        PlotSheetRef = false;
-+    }
-+    else if ( parser.Found( _("plotx"), &str ) )
++    if ( parser.Found( _("plot"), &str ) )
 +    {
 +        if (!str.CmpNoCase( wxT("ps") ) )
 +            PlotCmd = PLOT_PS;
@@ -119,12 +108,11 @@ diff -ruN kicad.orig/eeschema/eeschema_scripted.cpp kicad/eeschema/eeschema_scri
 +            PlotCmd = PLOT_DXF;
 +        else
 +        {
-+            parser.Usage();
-+            wxPrintf(wxT("Unexpected plot format '%ls'.\n"), str.c_str());
-+            return true;
++            wxFprintf( stderr, wxT("Unexpected plot format '%ls'.\n"), str.c_str());
++            return false;
 +        }
-+        PlotBW = parser.Found( _("plotx-bw") );
-+        PlotSheetRef = parser.Found( _("plotx-sheetref") );
++        PlotBW = parser.Found( _("plot-bw") );
++        PlotSheetRef = parser.Found( _("plot-sheetref") );
 +    }
 +
 +    fn = parser.GetParam();
@@ -135,8 +123,8 @@ diff -ruN kicad.orig/eeschema/eeschema_scripted.cpp kicad/eeschema/eeschema_scri
 +    }
 +    if( !fn.FileExists())
 +    {
-+        wxPrintf( wxT("%ls: file '%ls' does not exist.\n" ), app.argv[0], fn.GetFullPath().c_str() );
-+        return true;
++        wxFprintf( stderr, wxT("%ls: file '%ls' does not exist.\n" ), app.argv[0], fn.GetFullPath().c_str() );
++        return false;
 +    }
 +    wxSetWorkingDirectory( fn.GetPath() );
 +
@@ -145,14 +133,14 @@ diff -ruN kicad.orig/eeschema/eeschema_scripted.cpp kicad/eeschema/eeschema_scri
 +    frame = new WinEDA_SchematicFrame( NULL, wxT( "EESchema" ),
 +                                       wxPoint( 0, 0 ), wxSize( 600, 400 ) );
 +    ActiveScreen = frame->GetScreen();
-+#if 0 // enable this to see more of the GUI
 +    app.SetTopWindow( frame );
++#if 0 // enable this to see more of the GUI
 +    frame->Show( true );
 +#endif
 +    if( !frame->LoadOneEEProject( fn.GetFullPath(), false ) )
 +    {
-+        fprintf( stderr, "%ls: can't load\n", fn.GetFullPath().c_str() );
-+        return true;
++        wxFprintf( stderr, fn.GetFullPath() + _(": can't load\n") );
++        return false;
 +    }
 +
 +    if ( parser.Found( wxT("list-sheets") ) ) // class_drawsheetpath.h
@@ -249,13 +237,11 @@ diff -ruN kicad.orig/eeschema/eeschema_scripted.cpp kicad/eeschema/eeschema_scri
 +        fn.SetExt( wxT( "net" ) );
 +        frame->WriteNetListFile( NET_TYPE_PCBNEW /* aFormat */, fn.GetFullPath(), false /* aUse_netnames - only used for Spice */ );
 +    }
-+
-+    delete frame;
 +    return true;
 +}
 diff -ruN kicad.orig/eeschema/eeschema_scripted.h kicad/eeschema/eeschema_scripted.h
 --- kicad.orig/eeschema/eeschema_scripted.h	1970-01-01 00:00:00.000000000 +0000
-+++ kicad/eeschema/eeschema_scripted.h	2010-12-29 15:09:05.802259004 +0000
++++ kicad/eeschema/eeschema_scripted.h	2011-01-02 13:10:04.267823004 +0000
 @@ -0,0 +1,14 @@
 +/////////////////////////////////////////////////////////////////////////////
 +// Name:        eeschema_scripted.h
@@ -273,8 +259,8 @@ diff -ruN kicad.orig/eeschema/eeschema_scripted.h kicad/eeschema/eeschema_script
 +extern EESCHEMA_SCRIPTED g_EESchemaScripted;
 diff -ruN kicad.orig/pcbnew/pcbnew_scripted.cpp kicad/pcbnew/pcbnew_scripted.cpp
 --- kicad.orig/pcbnew/pcbnew_scripted.cpp	1970-01-01 00:00:00.000000000 +0000
-+++ kicad/pcbnew/pcbnew_scripted.cpp	2010-12-28 13:58:44.257392001 +0000
-@@ -0,0 +1,552 @@
++++ kicad/pcbnew/pcbnew_scripted.cpp	2011-01-02 17:30:48.624837659 +0000
+@@ -0,0 +1,546 @@
 +/////////////////////////////////////////////////////////////////////////////
 +// Name:        pcbnew_scripted.cpp
 +// Copyright:   Wolfgang Spraul
@@ -355,8 +341,6 @@ diff -ruN kicad.orig/pcbnew/pcbnew_scripted.cpp kicad/pcbnew/pcbnew_scripted.cpp
 +    int i;
 +
 +    WinEDA_App& app = wxGetApp();
-+    if (app.argc < 2 || app.argv[1][0] != '-')
-+        return false;
 +    g_IsScripted = true;
 +    wxLog::EnableLogging(false); // this should suppress some wx dialogs
 +    app.InitEDA_Appl( wxT( "PCBnew" ), APP_TYPE_PCBNEW );
@@ -365,15 +349,14 @@ diff -ruN kicad.orig/pcbnew/pcbnew_scripted.cpp kicad/pcbnew/pcbnew_scripted.cpp
 +    parser.SetDesc(g_cmdLineDesc);
 +    parser.SetCmdLine(app.argc, app.argv);
 +    if (parser.Parse())
-+        return true;
++        return false;
 +    if ( parser.Found( wxT("ps-pads-drill-opt"), &str )
 +         && str.CmpNoCase( wxT("none") )
 +         && str.CmpNoCase( wxT("small") )
 +         && str.CmpNoCase( wxT("real") ))
 +    {
-+        parser.Usage();
-+        wxPrintf(wxT("Unexpected pads drill option '%ls'.\n"), str.c_str());
-+        return true;
++        wxFprintf( stderr, wxT("Unexpected pads drill option '%ls'.\n"), str.c_str());
++        return false;
 +    }
 +    i = parser.Found( _("drill") )
 +        + parser.Found( _("list-layers") )
@@ -386,13 +369,13 @@ diff -ruN kicad.orig/pcbnew/pcbnew_scripted.cpp kicad/pcbnew/pcbnew_scripted.cpp
 +        + parser.Found( _("vrml") );
 +    if ( !i )
 +    {
-+        wxPrintf(wxT("One of --drill --list-layers --plot --drc --svg --pos --bom --cmp --vrml must be given.\n"));
-+        return true;
++        wxFprintf( stderr, wxT("One of --drill --list-layers --plot --drc --svg --pos --bom --cmp --vrml must be given.\n"));
++        return false;
 +    }
 +    if ( i > 1 )
 +    {
-+        wxPrintf(wxT("Only one of --drill --list-layers --plot --drc --svg --pos --bom --cmp --vrml may be given at a time.\n"));
-+        return true;
++        wxFprintf( stderr, wxT("Only one of --drill --list-layers --plot --drc --svg --pos --bom --cmp --vrml may be given at a time.\n"));
++        return false;
 +    }
 +
 +    fn = parser.GetParam();
@@ -403,8 +386,8 @@ diff -ruN kicad.orig/pcbnew/pcbnew_scripted.cpp kicad/pcbnew/pcbnew_scripted.cpp
 +    }
 +    if( !fn.FileExists())
 +    {
-+        wxPrintf( wxT("%ls: file '%ls' does not exist.\n" ), app.argv[0], fn.GetFullPath().c_str() );
-+        exit(0);
++        wxFprintf( stderr, wxT("%ls: file '%ls' does not exist.\n" ), app.argv[0], fn.GetFullPath().c_str() );
++        return false;
 +    }
 +    wxSetWorkingDirectory( fn.GetPath() );
 +
@@ -415,9 +398,9 @@ diff -ruN kicad.orig/pcbnew/pcbnew_scripted.cpp kicad/pcbnew/pcbnew_scripted.cpp
 +
 +    g_DrawBgColor = BLACK;
 +    frame = new WinEDA_PcbFrame( NULL, wxT( "PcbNew" ), wxPoint( 0, 0 ), wxSize( 600, 400 ) );
++    app.SetTopWindow( frame );
 +
 +#if 0 // enable this to see more of the GUI
-+    app.SetTopWindow( frame );
 +    frame->Show( true );
 +    frame->Zoom_Automatique( true );
 +#endif
@@ -479,9 +462,8 @@ diff -ruN kicad.orig/pcbnew/pcbnew_scripted.cpp kicad/pcbnew/pcbnew_scripted.cpp
 +        }
 +        else
 +        {
-+            parser.Usage();
-+            wxPrintf(wxT("Unexpected plot type '%ls'.\n"), str.c_str());
-+            exit(0);
++            wxFprintf( stderr, wxT("Unexpected plot type '%ls'.\n"), str.c_str());
++            return false;
 +        }
 +
 +        // --ps-pads-drill-opt
@@ -495,9 +477,8 @@ diff -ruN kicad.orig/pcbnew/pcbnew_scripted.cpp kicad/pcbnew/pcbnew_scripted.cpp
 +                g_pcb_plot_options.DrillShapeOpt = PCB_Plot_Options::FULL_DRILL_SHAPE;
 +            else
 +            {
-+                parser.Usage();
-+                wxPrintf(wxT("Unexpected Postscript pads drill option '%ls'.\n"), str.c_str());
-+                exit(0);
++                wxFprintf( stderr, wxT("Unexpected Postscript pads drill option '%ls'.\n"), str.c_str());
++                return false;
 +            }
 +        }
 +
@@ -824,12 +805,11 @@ diff -ruN kicad.orig/pcbnew/pcbnew_scripted.cpp kicad/pcbnew/pcbnew_scripted.cpp
 +            wxMkdir( subDirFor3Dshapes );
 +        frame->ExportVRML_File( fn.GetFullPath(), 1.0 /* aScale */, true /* aExport3DFile */, subDirFor3Dshapes );
 +    }
-+    delete frame;
 +    return true;
 +}
 diff -ruN kicad.orig/pcbnew/pcbnew_scripted.h kicad/pcbnew/pcbnew_scripted.h
 --- kicad.orig/pcbnew/pcbnew_scripted.h	1970-01-01 00:00:00.000000000 +0000
-+++ kicad/pcbnew/pcbnew_scripted.h	2010-12-22 18:47:58.774932729 +0000
++++ kicad/pcbnew/pcbnew_scripted.h	2011-01-02 13:10:04.267823004 +0000
 @@ -0,0 +1,7 @@
 +/////////////////////////////////////////////////////////////////////////////
 +// Name:        pcbnew_scripted.h

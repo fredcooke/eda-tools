@@ -1,6 +1,6 @@
 diff -ruN kicad.orig/eeschema/CMakeLists.txt kicad/eeschema/CMakeLists.txt
 --- kicad.orig/eeschema/CMakeLists.txt	2010-10-19 08:48:07.000000000 +0000
-+++ kicad/eeschema/CMakeLists.txt	2010-12-28 13:43:28.365392001 +0000
++++ kicad/eeschema/CMakeLists.txt	2011-01-02 13:06:41.627823067 +0000
 @@ -83,6 +83,7 @@
      eeredraw.cpp
      eeschema.cpp
@@ -11,7 +11,7 @@ diff -ruN kicad.orig/eeschema/CMakeLists.txt kicad/eeschema/CMakeLists.txt
      files-io.cpp
 diff -ruN kicad.orig/eeschema/dialog_build_BOM.h kicad/eeschema/dialog_build_BOM.h
 --- kicad.orig/eeschema/dialog_build_BOM.h	2010-10-19 08:48:07.000000000 +0000
-+++ kicad/eeschema/dialog_build_BOM.h	2010-12-29 14:53:53.210259002 +0000
++++ kicad/eeschema/dialog_build_BOM.h	2011-01-02 13:06:41.627823067 +0000
 @@ -12,6 +12,7 @@
  
  class DIALOG_BUILD_BOM : public DIALOG_BUILD_BOM_BASE
@@ -22,7 +22,7 @@ diff -ruN kicad.orig/eeschema/dialog_build_BOM.h kicad/eeschema/dialog_build_BOM
      wxConfig*           m_Config;
 diff -ruN kicad.orig/eeschema/dialog_erc.h kicad/eeschema/dialog_erc.h
 --- kicad.orig/eeschema/dialog_erc.h	2010-10-19 08:48:07.000000000 +0000
-+++ kicad/eeschema/dialog_erc.h	2010-12-29 15:45:04.002259005 +0000
++++ kicad/eeschema/dialog_erc.h	2011-01-02 13:06:41.631823036 +0000
 @@ -30,6 +30,7 @@
  
  class DIALOG_ERC : public DIALOG_ERC_BASE
@@ -33,7 +33,7 @@ diff -ruN kicad.orig/eeschema/dialog_erc.h kicad/eeschema/dialog_erc.h
  private:
 diff -ruN kicad.orig/eeschema/dialog_SVG_print.cpp kicad/eeschema/dialog_SVG_print.cpp
 --- kicad.orig/eeschema/dialog_SVG_print.cpp	2010-10-19 08:48:07.000000000 +0000
-+++ kicad/eeschema/dialog_SVG_print.cpp	2010-12-31 14:59:18.871823000 +0000
++++ kicad/eeschema/dialog_SVG_print.cpp	2011-01-02 13:06:41.631823036 +0000
 @@ -33,6 +33,7 @@
  
  class DIALOG_SVG_PRINT : public DIALOG_SVG_PRINT_base
@@ -63,8 +63,8 @@ diff -ruN kicad.orig/eeschema/dialog_SVG_print.cpp kicad/eeschema/dialog_SVG_pri
  /* Prepare the data structures of print management and display the dialog
   * window for printing sheets.
 diff -ruN kicad.orig/eeschema/eeschema.cpp kicad/eeschema/eeschema.cpp
---- kicad.orig/eeschema/eeschema.cpp	2010-12-28 15:30:43.309392002 +0000
-+++ kicad/eeschema/eeschema.cpp	2010-12-28 15:38:23.073392001 +0000
+--- kicad.orig/eeschema/eeschema.cpp	2010-10-19 08:48:07.000000000 +0000
++++ kicad/eeschema/eeschema.cpp	2011-01-02 16:55:25.188837657 +0000
 @@ -15,6 +15,7 @@
  #include "program.h"
  #include "general.h"
@@ -77,15 +77,15 @@ diff -ruN kicad.orig/eeschema/eeschema.cpp kicad/eeschema/eeschema.cpp
  
      g_DebugLevel = 0;   // Debug level */
  
-+    if ( g_EESchemaScripted.Run() )
-+        return false;
++    if ( argc >= 2 && argv[1][0] == '-' )
++        return g_EESchemaScripted.Run();
 +
      InitEDA_Appl( wxT( "EESchema" ), APP_TYPE_EESCHEMA );
  
      if( m_Checker && m_Checker->IsAnotherRunning() )
 diff -ruN kicad.orig/eeschema/erc.cpp kicad/eeschema/erc.cpp
---- kicad.orig/eeschema/erc.cpp	2010-12-31 18:11:47.751823001 +0000
-+++ kicad/eeschema/erc.cpp	2010-12-29 15:43:01.970259008 +0000
+--- kicad.orig/eeschema/erc.cpp	2011-01-02 17:35:54.236837659 +0000
++++ kicad/eeschema/erc.cpp	2011-01-02 13:06:41.631823036 +0000
 @@ -557,6 +557,7 @@
          fn = g_RootSheet->m_AssociatedScreen->m_FileName;
          fn.SetExt( wxT( "erc" ) );
@@ -94,7 +94,7 @@ diff -ruN kicad.orig/eeschema/erc.cpp kicad/eeschema/erc.cpp
          wxFileDialog dlg( this, _( "ERC File" ), fn.GetPath(), fn.GetFullName(),
                            _( "Electronic rule check file (.erc)|*.erc" ),
                            wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
-@@ -570,6 +570,8 @@
+@@ -570,6 +571,8 @@
              ExecuteFile( this, wxGetApp().GetEditorName(),
                           QuoteFullPath( fn ) );
          }
