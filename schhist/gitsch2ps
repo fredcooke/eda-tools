@@ -116,7 +116,7 @@ fi
     rm -f *.ps
     $sanitize_profile "$tmp/$pro" || exit
     $sanitize_schem "$tmp/$schem" || exit
-    eeschema --plot "$tmp/$schem"
+    eeschema --plot=ps --plot-bw "$tmp/$schem"
 ) || exit
 
 mkdir -p "$outdir"
