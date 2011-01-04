@@ -1,0 +1,3 @@
+* running eeschema --bom will permanently change the background color
+  to black (until it's restored manually in the preferences)
+* start offering scripted patches upstream
