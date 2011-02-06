@@ -2,8 +2,8 @@
 #
 # fpd2pdf - Print a set of Fped files into a PDF
 #
-# Written 2010 by Werner Almesberger
-# Copyright 2010 Werner Almesberger
+# Written 2010-2011 by Werner Almesberger
+# Copyright 2010-2011 Werner Almesberger
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,10 +15,11 @@
 usage()
 {
     cat <<EOF 1>&2
-usage: $0 [-a] [-o out.pdf] file.fpd ...
+usage: $0 [-a] [-o out.pdf] [-P] file.fpd ...
 
   -a          also include files whose name contains a tilde (backup files)
   -o out.pdf  write to the specified file (default: standard output)
+  -P          use full page drawings
 EOF
     exit 1
 }
@@ -26,6 +27,7 @@ EOF
 
 out=-
 all=false
+p_opt=-p
 
 while true; do
     case "$1" in
@@ -34,6 +36,8 @@ while true; do
     -o)	[ -z "$2" ] && usage
 	out="$2"
 	shift 2;;
+    -P)	p_opt=-P
+	shift;;
     -*)	usage;;
     *)	break;;
     esac
@@ -43,4 +47,4 @@ done
 
 eval gs -q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile=$out -f \
   `for n in "$@"; do $all || [ "$n" = "${n/\~/}" ] && \
-  echo "<(fped -p \"$n\" -)"; done`
+  echo "<(fped $p_opt \"$n\" -)"; done`
