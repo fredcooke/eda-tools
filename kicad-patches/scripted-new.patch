@@ -1,7 +1,7 @@
 diff -ruN kicad.orig/eeschema/eeschema_scripted.cpp kicad/eeschema/eeschema_scripted.cpp
 --- kicad.orig/eeschema/eeschema_scripted.cpp	1970-01-01 00:00:00.000000000 +0000
-+++ kicad/eeschema/eeschema_scripted.cpp	2011-01-02 17:25:27.428837658 +0000
-@@ -0,0 +1,237 @@
++++ kicad/eeschema/eeschema_scripted.cpp	2011-03-13 02:25:17.039706999 +0000
+@@ -0,0 +1,236 @@
 +/////////////////////////////////////////////////////////////////////////////
 +// Name:        eeschema_scripted.cpp
 +// Copyright:   Werner Almesberger, Wolfgang Spraul
@@ -128,7 +128,6 @@ diff -ruN kicad.orig/eeschema/eeschema_scripted.cpp kicad/eeschema/eeschema_scri
 +    }
 +    wxSetWorkingDirectory( fn.GetPath() );
 +
-+    g_DrawBgColor = BLACK;
 +    SeedLayers();
 +    frame = new WinEDA_SchematicFrame( NULL, wxT( "EESchema" ),
 +                                       wxPoint( 0, 0 ), wxSize( 600, 400 ) );
@@ -259,8 +258,8 @@ diff -ruN kicad.orig/eeschema/eeschema_scripted.h kicad/eeschema/eeschema_script
 +extern EESCHEMA_SCRIPTED g_EESchemaScripted;
 diff -ruN kicad.orig/pcbnew/pcbnew_scripted.cpp kicad/pcbnew/pcbnew_scripted.cpp
 --- kicad.orig/pcbnew/pcbnew_scripted.cpp	1970-01-01 00:00:00.000000000 +0000
-+++ kicad/pcbnew/pcbnew_scripted.cpp	2011-01-02 17:30:48.624837659 +0000
-@@ -0,0 +1,546 @@
++++ kicad/pcbnew/pcbnew_scripted.cpp	2011-03-13 06:55:03.227707000 +0000
+@@ -0,0 +1,552 @@
 +/////////////////////////////////////////////////////////////////////////////
 +// Name:        pcbnew_scripted.cpp
 +// Copyright:   Wolfgang Spraul
@@ -318,6 +317,7 @@ diff -ruN kicad.orig/pcbnew/pcbnew_scripted.cpp kicad/pcbnew/pcbnew_scripted.cpp
 +     { wxCMD_LINE_OPTION, wxT("ps-pads-drill-opt"), wxT("ps-pads-drill-opt"), wxT("Postscript pads drill option [none|small|real] (default:small)"),
 +          wxCMD_LINE_VAL_STRING },
 +     { wxCMD_LINE_SWITCH, wxT("mirror"), wxT("mirror"), wxT("mirror plot (HPGL and Postscript only)") },
++     { wxCMD_LINE_SWITCH, wxT("e"), wxT("exclude-pcb-edge"), wxT("exclude PCB edge (Gerber only)") },
 +     { wxCMD_LINE_SWITCH, wxT("fill-all-zones"), wxT("fill-all-zones"), wxT("fill zones before plotting") },
 +     { wxCMD_LINE_SWITCH, wxT("drc"), wxT("drc"), wxT("generates a design rule check report (.rpt)") },
 +     { wxCMD_LINE_SWITCH, wxT("svg"), wxT("svg"), wxT("plots the board in SVG format") },
@@ -486,6 +486,11 @@ diff -ruN kicad.orig/pcbnew/pcbnew_scripted.cpp kicad/pcbnew/pcbnew_scripted.cpp
 +        if ( parser.Found( wxT("mirror") ) )
 +            g_pcb_plot_options.PlotOrient = PLOT_MIROIR;
 +
++        // --exclude-pcb-edge
++        if ( parser.Found( wxT("exclude-pcb-edge") ) )
++            g_pcb_plot_options.Exclude_Edges_Pcb = true;
++
++        // --fill-all-zones
 +        if ( parser.Found( wxT("fill-all-zones") ) )
 +            frame->Fill_All_Zones( false /* verbose */ );
 +

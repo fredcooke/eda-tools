@@ -16,4 +16,3 @@ scripted-new.patch
 scripted-common.patch
 scripted-eeschema.patch
 scripted-pcbnew.patch
-exclude-pcb-edge.patch
