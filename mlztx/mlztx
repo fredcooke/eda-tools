@@ -1,0 +1,98 @@
+#!/usr/bin/perl
+#
+# mlztx - Multilayerize Text (in a KiCad board file)
+#
+# Written 2011 by Werner Almesberger
+# Copyright 2011 Werner Almesberger
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+
+
+sub usage
+{
+	print STDERR "usage: $0 [-i] board_file src_layer layer ...\n\n";
+	print STDERR "  -i  modify board file in place (default: write to ".
+	    "stdout)\n";
+	exit(1);
+}
+
+
+if ($ARGV[0] eq "-i") {
+	$in_place = 1;
+	$out = "_tmp";
+	shift @ARGV;
+} else {
+	$out = "-";
+}
+
+&usage if $ARGV[0] =~ /^-/;
+&usage unless @ARGV > 2;
+
+$f = shift @ARGV;
+$src = shift @ARGV;
+@dst = @ARGV;
+
+open(FILE, $f) || die "$f: $!";
+while (<FILE>) {
+	last if /^\$EndBOARD/;
+	$s .= $_;
+	if (/^\$TEXTPCB/) {
+		$text = 1;
+		undef $te;
+		undef $po;
+		undef $de;
+		next;
+	}
+	next unless $text;
+	if (/^Te\s/) {
+		$te = $_;
+		next;
+	}
+	if (/^Po\s/) {
+		$po = $_;
+		next;
+	}
+	if (/^De\s/) {
+		$de = $_;
+		next;
+	}
+	die unless /^\$EndTEXTPCB/;
+	$text = 0;
+	die unless defined $te;
+	die unless defined $po;
+	die unless defined $de;
+	@po = split(/\s+/, $po);
+	$x = $po[1];
+	$y = $po[2];
+	@de = split(/\s+/, $de);
+	if ($de[1] == $src) {
+		die if defined $te{"$x $y"};
+		$te{"$x $y"} = $te;
+		$po{"$x $y"} = $po;
+		$de{"$x $y"} = $de;
+	} else {
+		$have{"$x $y"} |= 1 << $de[1];
+	}
+}
+close FILE;
+
+open(FILE, ">$out") || die "$out: $!";
+print FILE $s || die "$out: $!";
+for $key (keys %te) {
+	@de = split(/\s+/, $de{$key});
+	for (@dst) {
+		next if $have{"$key"} & (1 << $_);;
+		@de[1] = $_;
+		$de = join(" ", @de);
+		print FILE "\$TEXTPCB\n$te{$key}$po{$key}$de\n\$EndTEXTPCB\n" ||
+		    die "$out: $!";
+	}
+}
+print FILE "\$EndBOARD\n" || die "$out: $!";
+close FILE || die "$out: $!";
+
+rename("$out", $f) || die "rename $out $f: $!" if $in_place;
