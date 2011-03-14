@@ -1,0 +1,120 @@
+Introduce option -o/--origin to use the auxiliary origin for Gerber, DXF,
+and the drill file. The auxiliary origin is always used for positioning
+files.
+
+Index: kicad.bzr/pcbnew/pcbnew_scripted.cpp
+===================================================================
+--- kicad.bzr.orig/pcbnew/pcbnew_scripted.cpp	2011-03-14 11:33:42.000000000 -0300
++++ kicad.bzr/pcbnew/pcbnew_scripted.cpp	2011-03-14 11:35:05.000000000 -0300
+@@ -56,6 +56,8 @@
+           wxCMD_LINE_VAL_STRING },
+      { wxCMD_LINE_SWITCH, wxT("mirror"), wxT("mirror"), wxT("mirror plot (HPGL and Postscript only)") },
+      { wxCMD_LINE_SWITCH, wxT("e"), wxT("exclude-pcb-edge"), wxT("exclude PCB edge (Gerber only)") },
++     { wxCMD_LINE_OPTION, wxT("o"), wxT("origin"), wxT("origin for Gerber, DXF, and drill [abs|aux] (default:abs)"),
++	  wxCMD_LINE_VAL_STRING },
+      { wxCMD_LINE_SWITCH, wxT("fill-all-zones"), wxT("fill-all-zones"), wxT("fill zones before plotting") },
+      { wxCMD_LINE_SWITCH, wxT("drc"), wxT("drc"), wxT("generates a design rule check report (.rpt)") },
+      { wxCMD_LINE_SWITCH, wxT("svg"), wxT("svg"), wxT("plots the board in SVG format") },
+@@ -146,6 +148,20 @@
+     frame->LoadOnePcbFile( fn.GetFullPath() );
+     frame->LoadProjectSettings( fn.GetFullPath() );
+ 
++    // --origin
++    if ( parser.Found( wxT("origin"), &str ) ) {
++	if (!str.CmpNoCase( wxT("abs") ) )
++	    g_DrillOriginIsAuxAxis = FALSE;
++	else if ( !str.CmpNoCase( wxT("aux") ) )
++	    g_DrillOriginIsAuxAxis = TRUE;
++	else
++	{
++	    wxFprintf( stderr,
++	      wxT("Unexpected plot origin option '%ls'.\n"), str.c_str());
++	    return false;
++	}
++    }
++
+     if ( parser.Found( wxT("drill") ) )
+     {
+         DIALOG_GENDRILL* drill_frame = new DIALOG_GENDRILL( frame );
+@@ -361,7 +377,7 @@
+ 
+             case PLOT_FORMAT_GERBER:
+                 success = frame->Genere_GERBER( fn.GetFullPath(), layer_i,
+-                                                false /* PlotOriginIsAuxAxis */,
++						g_DrillOriginIsAuxAxis,
+                                                 FILLED /* trace_mode */ );
+                 break;
+ 
+@@ -372,7 +388,7 @@
+ 
+             case PLOT_FORMAT_DXF:
+                 success = frame->Genere_DXF( fn.GetFullPath(), layer_i,
+-                                             false /* PlotOriginIsAuxAxis */,
++					     g_DrillOriginIsAuxAxis,
+                                              FILLED /* trace_mode */ );
+                 break;
+             }
+Index: kicad.bzr/pcbnew/gendrill.cpp
+===================================================================
+--- kicad.bzr.orig/pcbnew/gendrill.cpp	2011-03-14 11:26:15.000000000 -0300
++++ kicad.bzr/pcbnew/gendrill.cpp	2011-03-14 11:34:23.000000000 -0300
+@@ -56,7 +56,7 @@
+ static int                     s_Zeros_Format = DECIMAL_FORMAT;
+ static DrillPrecision          s_Precision( 2, 4 );
+ 
+-static bool                    DrillOriginIsAuxAxis; /* Axis selection (main /
++bool                           g_DrillOriginIsAuxAxis;/* Axis selection (main /
+                                                       * auxiliary) for drill
+                                                       * origin coordinates */
+ static wxPoint                 File_Drill_Offset;    /* Offset coordinate for
+@@ -85,7 +85,7 @@
+ 
+     if( s_Zeros_Format == DECIMAL_FORMAT )
+         m_Choice_Precision->Enable( false );
+-    if( DrillOriginIsAuxAxis )
++    if( g_DrillOriginIsAuxAxis )
+         m_Choice_Drill_Offset->SetSelection( 1 );
+ 
+     msg << s_Precision.m_lhs << wxT( ":" ) << s_Precision.m_rhs;
+@@ -170,7 +170,7 @@
+     Minimal = m_Check_Minimal->IsChecked();
+     Mirror  = m_Check_Mirror->IsChecked();
+     s_Zeros_Format = m_Choice_Zeros_Format->GetSelection();
+-    DrillOriginIsAuxAxis = m_Choice_Drill_Offset->GetSelection();
++    g_DrillOriginIsAuxAxis = m_Choice_Drill_Offset->GetSelection();
+ 
+     msg = m_PenSpeed->GetValue();
+     if( msg.ToLong( &ltmp ) )
+@@ -217,7 +217,7 @@
+         Config->Read( MirrorKey, &Mirror );
+         Config->Read( MinimalKey, &Minimal );
+         Config->Read( UnitDrillInchKey, &s_Unit_Drill_is_Inch );
+-        Config->Read( DrillOriginIsAuxAxisKey, &DrillOriginIsAuxAxis );
++        Config->Read( DrillOriginIsAuxAxisKey, &g_DrillOriginIsAuxAxis );
+     }
+ 
+     DIALOG_GENDRILL* frame = new DIALOG_GENDRILL( this );
+@@ -241,7 +241,7 @@
+         Config->Write( MirrorKey, Mirror );
+         Config->Write( MinimalKey, Minimal );
+         Config->Write( UnitDrillInchKey, s_Unit_Drill_is_Inch );
+-        Config->Write( DrillOriginIsAuxAxisKey, DrillOriginIsAuxAxis );
++        Config->Write( DrillOriginIsAuxAxisKey, g_DrillOriginIsAuxAxis );
+     }
+ }
+ 
+Index: kicad.bzr/pcbnew/gendrill.h
+===================================================================
+--- kicad.bzr.orig/pcbnew/gendrill.h	2011-03-14 11:26:15.000000000 -0300
++++ kicad.bzr/pcbnew/gendrill.h	2011-03-14 11:34:23.000000000 -0300
+@@ -5,6 +5,10 @@
+ #ifndef GENDRILL_H
+ #define GENDRILL_H
+ 
++
++extern bool g_DrillOriginIsAuxAxis; /* Axis selection */
++
++
+ /* the DRILL_TOOL class  handles tools used in the excellon drill file */
+ class DRILL_TOOL
+ {

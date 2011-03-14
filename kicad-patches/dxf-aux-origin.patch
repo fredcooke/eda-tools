@@ -1,0 +1,80 @@
+Add support for using the auxiliary axis in DXF as well.
+
+Index: kicad.bzr/include/wxBasePcbFrame.h
+===================================================================
+--- kicad.bzr.orig/include/wxBasePcbFrame.h	2011-03-14 11:35:38.000000000 -0300
++++ kicad.bzr/include/wxBasePcbFrame.h	2011-03-14 11:35:42.000000000 -0300
+@@ -337,6 +337,7 @@
+                         GRTraceMode     trace_mode );
+     bool     Genere_DXF( const wxString& FullFileName,
+                          int             Layer,
++                         bool            PlotOriginIsAuxAxis,
+                          GRTraceMode     trace_mode );
+     void     Plot_Layer( PLOTTER*    plotter,
+                          int         Layer,
+Index: kicad.bzr/pcbnew/pcbplot.cpp
+===================================================================
+--- kicad.bzr.orig/pcbnew/pcbplot.cpp	2011-03-14 11:35:38.000000000 -0300
++++ kicad.bzr/pcbnew/pcbplot.cpp	2011-03-14 11:35:42.000000000 -0300
+@@ -681,7 +681,7 @@
+                 break;
+ 
+             case PLOT_FORMAT_DXF:
+-                success = m_Parent->Genere_DXF( fn.GetFullPath(), layer,
++                success = m_Parent->Genere_DXF( fn.GetFullPath(), layer, false,
+                                                 g_pcb_plot_options.Trace_Mode );
+                 break;
+             }
+Index: kicad.bzr/pcbnew/plotdxf.cpp
+===================================================================
+--- kicad.bzr.orig/pcbnew/plotdxf.cpp	2011-03-14 11:35:38.000000000 -0300
++++ kicad.bzr/pcbnew/plotdxf.cpp	2011-03-14 12:04:20.000000000 -0300
+@@ -13,9 +13,11 @@
+ #include "protos.h"
+ 
+ bool WinEDA_BasePcbFrame::Genere_DXF( const wxString& FullFileName, int Layer,
++				      bool PlotOriginIsAuxAxis,
+                                       GRTraceMode trace_mode )
+ {
+     Ki_PageDescr* currentsheet = GetScreen()->m_CurrentSheetDesc;
++    wxPoint offset;
+ 
+     FILE* output_file = wxFopen( FullFileName, wxT( "wt" ) );
+     if( output_file == NULL )
+@@ -25,9 +27,23 @@
+ 
+     SetLocaleTo_C_standard();
+ 
++    if( PlotOriginIsAuxAxis ) {
++	/*
++	 * We undo the y offset applied in common/class_plotter.cpp, methods
++	 * set_paper_size and user_to_device_coordinates
++	 */
++        offset.x = m_Auxiliary_Axis_Position.x;
++        offset.y = m_Auxiliary_Axis_Position.y - currentsheet->m_Size.y * 10;
++    }
++    else
++    {
++        offset.x = 0;
++        offset.y = 0;
++    }
++
+     DXF_PLOTTER* plotter = new DXF_PLOTTER();
+     plotter->set_paper_size( currentsheet );
+-    plotter->set_viewport( wxPoint( 0, 0 ), 1, 0 );
++    plotter->set_viewport( offset, 1, 0 );
+     plotter->set_creator( wxT( "PCBNEW-DXF" ) );
+     plotter->set_filename( FullFileName );
+     plotter->start_plot( output_file );
+Index: kicad.bzr/pcbnew/pcbnew_scripted.cpp
+===================================================================
+--- kicad.bzr.orig/pcbnew/pcbnew_scripted.cpp	2011-03-14 11:35:42.000000000 -0300
++++ kicad.bzr/pcbnew/pcbnew_scripted.cpp	2011-03-14 11:44:25.000000000 -0300
+@@ -372,6 +372,7 @@
+ 
+             case PLOT_FORMAT_DXF:
+                 success = frame->Genere_DXF( fn.GetFullPath(), layer_i,
++                                             false /* PlotOriginIsAuxAxis */,
+                                              FILLED /* trace_mode */ );
+                 break;
+             }

@@ -16,3 +16,5 @@ scripted-new.patch
 scripted-common.patch
 scripted-eeschema.patch
 scripted-pcbnew.patch
+dxf-aux-origin.patch
+origin-opt.patch
