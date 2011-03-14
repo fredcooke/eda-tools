@@ -1,0 +1,109 @@
+#!/usr/bin/perl
+#
+# cptx - Copy the content of text fields (in a KiCad board file)
+#
+# Written 2011 by Werner Almesberger
+# Copyright 2011 Werner Almesberger
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+
+
+sub usage
+{
+	print STDERR
+	    "usage: $0 [-i] board_file src_layer src_x src_y layer x y ...\n\n";
+	print STDERR
+	    "  -i  modify board file in place (default: write to stdout)\n";
+	exit(1);
+}
+
+
+if ($ARGV[0] eq "-i") {
+	$in_place = 1;
+	$out = "_tmp";
+	shift @ARGV;
+} else {
+	$out = "-";
+}
+
+&usage if $ARGV[0] =~ /^-/;
+&usage unless @ARGV >= 7;
+
+$f = shift @ARGV;
+$src_layer = shift @ARGV;
+$src_x = shift @ARGV;
+$src_y = shift @ARGV;
+
+@dst = @ARGV;
+&usage if @dst % 3;
+
+open(FILE, $f) || die "$f: $!";
+LINE: while (<FILE>) {
+	last if /^\$EndBOARD/;
+	if (/^\$TEXTPCB/) {
+		$text = 1;
+		$t = $_;
+		undef $te;
+		undef $po;
+		undef $de;
+		next;
+	}
+	if (!$text) {
+		$s .= $_;
+		next;
+	}
+	$t .= $_;
+	if (/^Te\s/) {
+		$te = $_;
+		next;
+	}
+	if (/^Po\s/) {
+		$po = $_;
+		next;
+	}
+	if (/^De\s/) {
+		$de = $_;
+		next;
+	}
+	die unless /^\$EndTEXTPCB/;
+	$text = 0;
+	die unless defined $te;
+	die unless defined $po;
+	die unless defined $de;
+	@po = split(/\s+/, $po);
+	$x = $po[1];
+	$y = $po[2];
+	@de = split(/\s+/, $de);
+	$layer = $de[1];
+	if ($layer == $src_layer && $x == $src_x && $y == $src_y) {
+		die unless $te =~ /"[^"]*"/;
+		$str = $&;
+	}
+	for ($i = 0; $i != @dst; $i += 3) {
+		if ($layer == $dst[$i] &&
+		    $x == $dst[$i+1] && $y == $dst[$i+2]) {
+			push(@d, $t);
+			next LINE;
+		}
+	}
+	$s .= $t;
+}
+close FILE;
+
+die unless defined $str;
+
+open(FILE, ">$out") || die "$out: $!";
+print FILE $s || die "$out: $!";
+
+for (@d) {
+	($tmp = $_) =~ s/"[^"]*"/$str/;
+	print FILE $tmp || die "$out: $!";
+}
+print FILE "\$EndBOARD\n" || die "$out: $!";
+close FILE || die "$out: $!";
+
+rename("$out", $f) || die "rename $out $f: $!" if $in_place;
