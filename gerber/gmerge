@@ -1,0 +1,78 @@
+#!/usr/bin/perl
+#
+# gmerge - Merge multiple KiCAD Gerber files into one
+#
+# Written 2011 by Werner Almesberger
+# Copyright 2011 Werner Almesberger
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+
+
+$state = "HDR";
+
+LINE: while (<>) {
+	if ($state eq "HDR") {
+		if (/^G04 APERTURE LIST/) {
+			$state = "APT";
+			next;
+		}
+		$hdr .= $_;
+		$phdr .= $_ unless /^G04/;
+		next;
+	}
+	if ($state eq "APT") {
+		if (/^G04 APERTURE END LIST/) {
+			$state = "CMD";
+			next;
+		}
+		die "unrecognized aperture" unless /^%ADD(\d+)C,((\d|\.)+)\*%/;
+		for (keys %apt) {
+			if ($apt{$_} == $2) {
+				$map{$1} = $_;
+				next LINE;
+			}
+		}
+		for ($t = $1; defined $apt{$t}; $t++) {}
+		$apt{$t} = $2;
+		$map{$1} = $t;
+		next;
+	}
+	die "internal error" unless $state eq "CMD";
+	if (/^M02\*/) {
+		$state = "HDR";
+		if (defined $ghdr) {
+			if ($gphdr ne $phdr) {
+				print STDERR "--- first header ---\n", $gphdr;
+				print STDERR "--- current header ---\n", $phdr;
+				die "incompatible headers";
+			}
+			
+		} else {
+			$ghdr = $hdr;
+			$gphdr = $phdr;
+		}
+		undef $hdr;
+		undef $phdr;
+		next;
+	}
+	if (/^G54D(\d+)\*/) {
+		die "undeclared aperture" unless defined $map{$1};
+		$c .= "G54D".$map{$1}."*\n";
+		next;
+	}
+	die "unexpected command" unless /^X\d+Y\d+D0*[12]\*/;
+	$c .= $_;
+}
+
+print $ghdr || die $!;
+print "G04 APERTURE LIST*\n" || die $!;
+for (sort keys %apt) {
+	print "\%ADD".$_."C,".$apt{$_}."*%\n" || die $!;
+}
+print "G04 APERTURE END LIST*\n" || die $!;
+print $c || die $!;
+print "M02*\n" || die $!;
