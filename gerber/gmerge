@@ -64,7 +64,7 @@ LINE: while (<>) {
 		$c .= "G54D".$map{$1}."*\n";
 		next;
 	}
-	die "unexpected command" unless /^X\d+Y\d+D0*[12]\*/;
+	die "unexpected command \"$_\"" unless /^X-?\d+Y-?\d+D0*[12]\*/;
 	$c .= $_;
 }
 
