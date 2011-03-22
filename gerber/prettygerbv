@@ -34,6 +34,31 @@ EOF
 }
 
 
+layers_begin()
+{
+	curr_layer=$1
+	echo '(gerbv-file-version! "2.0A")' >_gvp
+}
+
+
+layer()
+{
+	file=$1
+	shift
+	[ -e "$file" ] || return
+	cat <<EOF >>_gvp
+(define-layer! $curr_layer (cons 'filename "$file") $*)
+EOF
+	curr_layer=`expr $curr_layer - 1`
+}
+
+
+layers_end()
+{
+	echo '(set-render-type! 2)' >>_gvp
+}
+
+
 run_gerbv()
 {
 	gerbv -p _gvp --dpi=600 -x png -o "$1"
@@ -42,30 +67,28 @@ run_gerbv()
 
 front()
 {
-	cat <<EOF >_gvp
-(gerbv-file-version! "2.0A")
-(define-layer! 4 (cons 'filename "$NAME-Front.gtl") $COPPER)
-(define-layer! 3 (cons 'filename "$NAME-SoldP_Front.gtp") $PASTE)
-(define-layer! 2 (cons 'filename "$NAME-Mask_Front.gts") $INV $MASK)
-(define-layer! 1 (cons 'filename "$NAME-SilkS_Front.gto") $SILK)
-(define-layer! 0 (cons 'filename "$NAME-PCB_Edges.gbr") $EDGE)
-(set-render-type! 2)
-EOF
+	layers_begin 4
+	layer $NAME-Front.gtl $COPPER
+	layer $NAME-SoldP_Front.gtp $PASTE
+	layer $NAME-Mask_Front.gts $INV $MASK
+	layer $NAME-SilkS_Front.gto $SILK
+	layer $NAME-PCB_Edges.gbr $EDGE
+	layers_end
+
 	run_gerbv "$1"
 }
 
 
 back()
 {
-	cat <<EOF >_gvp
-(gerbv-file-version! "2.0A")
-(define-layer! 4 (cons 'filename "$NAME-Back.gbl") $COPPER)
-(define-layer! 3 (cons 'filename "$NAME-SoldP_Back.gbp") $PASTE)
-(define-layer! 2 (cons 'filename "$NAME-Mask_Back.gbs") $INV $MASK)
-(define-layer! 1 (cons 'filename "$NAME-SilkS_Back.gbo") $SILK)
-(define-layer! 0 (cons 'filename "$NAME-PCB_Edges.gbr") $EDGE)
-(set-render-type! 2)
-EOF
+	layers_begin 4
+	layer $NAME-Back.gbl $COPPER
+	layer $NAME-SoldP_Back.gbp $PASTE
+	layer $NAME-Mask_Back.gbs $INV $MASK
+	layer $NAME-SilkS_Back.gbo $SILK
+	layer $NAME-PCB_Edges.gbr $EDGE
+	layers_end
+
 	run_gerbv _tmp.png
 	convert -flop _tmp.png "$1"
 	rm -f _tmp.png
@@ -74,13 +97,12 @@ EOF
 
 conn()
 {
-	cat <<EOF >_gvp
-(gerbv-file-version! "2.0A")
-(define-layer! 2 (cons 'filename "$NAME-Back.gbl") $BACK)
-(define-layer! 1 (cons 'filename "$NAME-Front.gtl") $FRONT)
-(define-layer! 0 (cons 'filename "$NAME-PCB_Edges.gbr") $EDGE2)
-(set-render-type! 2)
-EOF
+	layers_begin 2
+	layer $NAME-Back.gbl $BACK
+	layer $NAME-Front.gtl $FRONT
+	layer $NAME-PCB_Edges.gbr $EDGE2
+	layers_end
+
 	run_gerbv "$1"
 }
 
