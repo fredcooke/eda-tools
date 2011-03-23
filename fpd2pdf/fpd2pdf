@@ -15,7 +15,7 @@
 usage()
 {
     cat <<EOF 1>&2
-usage: $0 [-a] [-o out.pdf] [-P] file.fpd ...
+usage: $0 [-a] [-o out.pdf] [-P] file.fpd[:package] ...
 
   -a          also include files whose name contains a tilde (backup files)
   -o out.pdf  write to the specified file (default: standard output)
@@ -47,4 +47,7 @@ done
 
 eval gs -q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile=$out -f \
   `for n in "$@"; do $all || [ "$n" = "${n/\~/}" ] && \
-  echo "<(fped $p_opt \"$n\" -)"; done`
+  echo "<(fped $p_opt  \
+    \"\`echo \\"$n\\" | sed 's/:.*//'\`\" \
+    \`echo \"$n\" | sed 's/.*:/-1/p;d'\` \
+    -)"; done`

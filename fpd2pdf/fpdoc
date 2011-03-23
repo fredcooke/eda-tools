@@ -1,0 +1,69 @@
+#!/usr/bin/perl
+#
+# fpdoc - Generate a PDF with the footprints used in a specific project
+#
+# Written 2011 by Werner Almesberger
+# Copyright 2011 Werner Almesberger
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+
+
+sub usage
+{
+	print STDERR "usage: $0 pro-file pdf-file\n";
+	exit(1);
+}
+
+
+&usage unless @ARGV == 2;
+
+$pro = $ARGV[0];
+$out = $ARGV[1];
+
+($base = $pro) =~ s|\.pro$||;
+
+$pos = "${base}Front.pos";
+$cmp = "$base.cmp";
+
+my $on = 0;
+open(FILE, $pro) || die "$pro: $!";
+while (<FILE>) {
+	chop;
+	if (m|^\[pcbnew/libraries\]|) {
+		$on = 1;
+		next;
+	}
+	$on = 0 if /^\[/;
+	next unless $on;
+	next unless /LibName\d+=/;
+	my $mod = "$'.mod";
+	my $fpd = "$'.fpd";
+	open(MOD, $mod) || die "$mod: $!";
+	while (<MOD>) {
+		chop;
+		next unless /^\$MODULE\s+/;
+		$fpd{$'} = $fpd;
+	}
+	close MOD;
+}
+close FILE;
+
+push(@INC, split(":", $ENV{"PATH"}));
+do "pos2fab" || die "pos2fab: $!";
+
+#
+# We iterate over the items in the .pos file so that we skip NC and virtual
+# components.
+#
+
+for (@order) {
+	my $fp = $fp{$_};
+	die "don't have $fp" unless defined $fpd{$fp};
+	$need{$fp} = 1;
+}
+
+exec "fpd2pdf", "-o", $out, map { "$fpd{$_}:$_" } sort keys %need;
