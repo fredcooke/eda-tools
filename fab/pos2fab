@@ -1,0 +1,62 @@
+#!/usr/bin/perl
+#
+# pos2fab - Condition a KiCAD .pos file for SMT fab use
+#
+# Written 2011 by Werner Almesberger
+# Copyright 2011 Werner Almesberger
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+
+
+sub usage
+{
+	print STDERR "usage: $0 pos-file cmp-file\n";
+	exit(1);
+}
+
+
+&usage unless @ARGV == 2;
+
+$pos = $ARGV[0];
+$cmp = $ARGV[1];
+
+open(FILE, $pos) || die "$pos: $!";
+while (<FILE>) {
+	chop;
+	next if /^#/;
+	my @f = split(/\s+/);
+	$pos{$f[0]} = [ $f[2], -$f[3]+0, $f[4] ];
+	push(@order, $f[0]);
+}
+close FILE;
+
+open(FILE, $cmp) || die "$cmp: $!";
+while (<FILE>) {
+	chop;
+	if (/^BeginCmp/) {
+		undef $ref;
+		undef $mod;
+		next;
+	}
+	if (/^Reference\s*=\s*(\S+)\s*;/) {
+		$ref = $1;
+		next;
+	}
+	if (/^IdModule\s*=\s*(\S+)\s*;/) {
+		$mod = $1;
+		next;
+	}
+	next unless /^EndCmp/;
+	$fp{$ref} = $mod;
+}
+close FILE;
+
+print "\"Ref\",\"Footprint\",\"PosX(in)\",\"PosY(in)\",\"Rot(ccw)\"\n" || die;
+for (@order) {
+	print "\"$_\",\"$fp{$_}\",$pos{$_}[0],$pos{$_}[1],$pos{$_}[2]\n" ||
+	  die;
+}
