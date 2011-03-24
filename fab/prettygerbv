@@ -16,7 +16,8 @@ COPPER="(cons 'color #(65535 50401 10000))"
 PASTE="(cons 'color #(39083 39083 50000))"
 MASK="(cons 'inverted #t) (cons 'color #(8839 53994 8178))"
 SILK="(cons 'color #(65535 65535 65535))"
-EDGE="(cons 'color #(0 0 0))"
+EDGE="(cons 'color #(65535 65535 0))"
+DRILL="(cons 'color #(0 0 0))"
 
 FRONT="(cons 'color #(65535 10000 10000))"
 BACK="(cons 'color #(30000 65535 30000))"
@@ -26,9 +27,11 @@ EDGE2="(cons 'color #(30000 40000 65535))"
 usage()
 {
 	cat <<EOF 1>&2
-usage: $0 project-name view png-file
+usage: $0 [-d file] project-name view png-file
 
   view  "front", "back", "conn", "all"
+
+  -d file   also use drill file (converted to Gerber)
 EOF
 	exit 1
 }
@@ -61,14 +64,15 @@ layers_end()
 
 run_gerbv()
 {
-	gerbv -p _gvp --dpi=600 -x png -o "$1"
+	gerbv -p _gvp --dpi=600 -b '#202020' -x png -o "$1"
 }
 
 
 front()
 {
-	layers_begin 4
+	layers_begin 5
 	layer $NAME-Front.gtl $COPPER
+	[ "$drill" ] && layer $drill $DRILL
 	layer $NAME-SoldP_Front.gtp $PASTE
 	layer $NAME-Mask_Front.gts $INV $MASK
 	layer $NAME-SilkS_Front.gto $SILK
@@ -81,8 +85,9 @@ front()
 
 back()
 {
-	layers_begin 4
+	layers_begin 5
 	layer $NAME-Back.gbl $COPPER
+	[ "$drill" ] && layer $drill $DRILL
 	layer $NAME-SoldP_Back.gbp $PASTE
 	layer $NAME-Mask_Back.gbs $INV $MASK
 	layer $NAME-SilkS_Back.gbo $SILK
@@ -97,7 +102,7 @@ back()
 
 conn()
 {
-	layers_begin 2
+	layers_begin 3
 	layer $NAME-Back.gbl $BACK
 	layer $NAME-Front.gtl $FRONT
 	layer $NAME-PCB_Edges.gbr $EDGE2
@@ -115,6 +120,12 @@ all()
 	montage -geometry +4+4 _front.png _back.png _conn.png "$1"
 	rm -f _front.png _back.png _conn.png
 }
+
+drill=
+if [ "$1" = -d ]; then
+	drill=$2
+	shift 2
+fi
 
 [ "$4" ] && usage
 [ ! "$3" ] && usage
