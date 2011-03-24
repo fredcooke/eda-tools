@@ -1,0 +1,43 @@
+#!/usr/bin/perl
+#
+# drl2gerber - Convert a KiCAD-generated Excellon drill file to Gerber
+#
+# Written 2011 by Werner Almesberger
+# Copyright 2011 Werner Almesberger
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+
+
+print "G04 MACHINE-GENERATED FROM DRILL FILE*\n" || die;
+print "G01*\n" || die;		# linear Interpolation
+print "G70*\n" || die;		# inch units
+print "G90*\n" || die;		# absolute Mode
+print "%MOIN*%*\n" || die;	# inches, RS274X-style
+print "%FSLAX34Y34*%\n" || die;	# format
+
+while (<>) {
+	chop;
+	if (/^T(\d+)C/) {
+		print "%ADD", $1+10, "C,$'*%\n" || die;
+		next;
+	}
+	if (/^T(\d+)$/) {
+		print "G54D", $1+10, "*\n" || die;
+		next;
+	}
+	if (/^X([-0-9.]+)Y([-0-9.]+)$/) {
+		printf("X%dY%dD03*\n", $1*10000, $2*10000) || die;
+		next;
+	}
+	if (/^X([-0-9.]+)Y([-0-9.]+)G85X([-0-9.]+)Y([-0-9.]+)$/) {
+		printf("X%dY%dD02*\nX%dY%dD01*\n",
+		    $1*10000, $2*10000, $3*10000, $4*10000) || die;
+		next;
+	}
+}
+
+print "M02*\n" || die;
