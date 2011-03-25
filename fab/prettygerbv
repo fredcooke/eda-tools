@@ -17,7 +17,7 @@ PASTE="(cons 'color #(39083 39083 50000))"
 MASK="(cons 'inverted #t) (cons 'color #(8839 53994 8178))"
 SILK="(cons 'color #(65535 65535 65535))"
 EDGE="(cons 'color #(65535 65535 0))"
-DRILL="(cons 'color #(0 0 0))"
+DRILL="(cons 'color #(0 0 40000))"
 
 FRONT="(cons 'color #(65535 10000 10000))"
 BACK="(cons 'color #(30000 65535 30000))"
@@ -64,7 +64,7 @@ layers_end()
 
 run_gerbv()
 {
-	gerbv -p _gvp --dpi=600 -b '#202020' -x png -o "$1"
+	gerbv -p _gvp --dpi=600 -x png -o "$1"
 }
 
 
