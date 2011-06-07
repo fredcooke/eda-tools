@@ -69,7 +69,7 @@ do "pos2fab" || die "pos2fab: $!";
 #
 
 for (@order) {
-	$need{$fp{$_}} = 1;
+	$need{$fp{$_}} = 1 if defined $fp{$_};
 }
 
 for (keys %need) {
