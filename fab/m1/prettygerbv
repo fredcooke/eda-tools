@@ -106,14 +106,17 @@ back()
 
 conn()
 {
-	layers_begin 6
-	layer art06.pho $BACK
-	layer art05.pho $L5
-	layer art04.pho $L4
-	layer art03.pho $L3
-	layer art02.pho $L2
-	layer art01.pho $FRONT
+	layers_begin 3
+#	layer art06.pho $BACK
+#	layer art05.pho $L5
+#	layer art04.pho $L4
+#	layer art03.pho $L3
+#	layer art02.pho $L2
+#	layer art01.pho $FRONT
 #	layer $NAME-PCB_Edges.gbr $EDGE2
+	layer art02.pho $BACK
+	layer art01.pho $FRONT
+	[ "$drill" ] && layer $drill $DRILL
 	layers_end
 
 	run_gerbv "$1"
