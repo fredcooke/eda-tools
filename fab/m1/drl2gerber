@@ -1,0 +1,74 @@
+#!/usr/bin/perl
+#
+# drl2gerber - Convert a KiCAD-generated Excellon drill file to Gerber
+#
+# Written 2011 by Werner Almesberger
+# Copyright 2011 Werner Almesberger
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+
+
+print "G04 MACHINE-GENERATED FROM DRILL FILE*\n" || die;
+print "G01*\n" || die;		# linear Interpolation
+print "G70*\n" || die;		# inch units
+print "G90*\n" || die;		# absolute Mode
+print "%MOIN*%*\n" || die;	# inches, RS274X-style
+print "%FSLAX34Y34*%\n" || die;	# format
+
+$x0 = 7300;
+$y0 = 268910;
+
+
+sub u()
+{
+	my $f = 1000000;
+
+	$_[0] =~ /^(-?)(\d+)$/;
+	my $s = 0;
+	for (split("", $2)) {
+		$s += $_*$f;
+		$f /= 10;
+	}
+	return $1 eq "-" ? -$s : $s;
+}
+
+
+while (<>) {
+	chop;
+	if (/^T(\d+)C/) {
+		print "%ADD", $1+10, "C,$'*%\n" || die;
+		print "G54D", $1+10, "*\n" || die;
+		$faux_g85 = 0;
+			# we dont' seem to have easily machine-readable
+			# information in Altium's Excellon to tell what should
+			# be a hole and what should be a slot
+		undef $last;
+		next;
+	}
+	if (/^T(\d+)$/) {
+		print "G54D", $1+10, "*\n" || die;
+		next;
+	}
+	if (/^X([-0-9.]+)Y([-0-9.]+)$/) {
+		my $c = sprintf("X%dY%d", &u($1)+$x0, &u($2)+$y0);
+
+		if ($faux_g85) {
+			print "${last}D02*\n${c}D01*\n" if defined $last;
+			$last = $c;
+		} else {
+			print "${c}D03*\n" || die;
+		}
+		next;
+	}
+	if (/^X([-0-9.]+)Y([-0-9.]+)G85X([-0-9.]+)Y([-0-9.]+)$/) {
+		printf("X%dY%dD02*\nX%dY%dD01*\n",
+		    &u($1)+$x0, &u($2)+$y0, &u($3)+$x0, &u($4)+$y0) || die;
+		next;
+	}
+}
+
+print "M02*\n" || die;

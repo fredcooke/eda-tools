@@ -1,0 +1,3 @@
+wget http://downloads.qi-hardware.com/hardware/milkymist_one/gerber/rc3/rc3_gerber.tar.bz2
+tar xfj rc3_gerber.tar.bz2
+make

@@ -1,0 +1,152 @@
+#!/bin/sh
+#
+# prettygerbv - Use gerbv to generate "pretty" views of a PCB
+#
+# Written 2011 by Werner Almesberger
+# Copyright 2011 Werner Almesberger
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+
+
+COPPER="(cons 'color #(65535 50401 10000))"
+PASTE="(cons 'color #(39083 39083 50000))"
+MASK="(cons 'inverted #t) (cons 'color #(8839 53994 8178))"
+SILK="(cons 'color #(65535 65535 65535))"
+EDGE="(cons 'color #(65535 65535 0))"
+DRILL="(cons 'color #(0 0 40000))"
+
+FRONT="(cons 'color #(65535 10000 10000))"
+BACK="(cons 'color #(30000 65535 30000))"
+EDGE2="(cons 'color #(30000 40000 65535))"
+L2="(cons 'color #(1000 1000 1000))"
+L3="(cons 'color #(1000 1000 1000))"
+L4="(cons 'color #(1000 1000 1000))"
+L5="(cons 'color #(1000 1000 1000))"
+
+
+usage()
+{
+	cat <<EOF 1>&2
+usage: $0 [-d file] project-name view png-file
+
+  view  "front", "back", "conn", "all"
+
+  -d file   also use drill file (converted to Gerber)
+EOF
+	exit 1
+}
+
+
+layers_begin()
+{
+	curr_layer=$1
+	echo '(gerbv-file-version! "2.0A")' >_gvp
+}
+
+
+layer()
+{
+	file=$1
+	shift
+	[ -e "$file" ] || return
+	cat <<EOF >>_gvp
+(define-layer! $curr_layer (cons 'filename "$file") $*)
+EOF
+	curr_layer=`expr $curr_layer - 1`
+}
+
+
+layers_end()
+{
+	echo '(set-render-type! 2)' >>_gvp
+}
+
+
+run_gerbv()
+{
+	gerbv -p _gvp --dpi=600 -x png -o "$1"
+}
+
+
+front()
+{
+	layers_begin 5
+	layer art01.pho $COPPER
+	[ "$drill" ] && layer $drill $DRILL
+	layer smd0129.pho $PASTE
+	layer sm0125.pho $INV $MASK
+	layer sst0127.pho $SILK
+#	layer $NAME-PCB_Edges.gbr $EDGE
+	layers_end
+
+	run_gerbv "$1"
+}
+
+
+back()
+{
+	layers_begin 5
+	layer art06.pho $COPPER
+	[ "$drill" ] && layer $drill $DRILL
+	layer smd0630.pho $PASTE
+	layer sm0626.pho $INV $MASK
+	layer ssb0628.pho $SILK
+#	layer $NAME-PCB_Edges.gbr $EDGE
+	layers_end
+
+	run_gerbv _tmp.png
+	convert -flop _tmp.png "$1"
+	rm -f _tmp.png
+}
+
+
+conn()
+{
+	layers_begin 6
+	layer art06.pho $BACK
+	layer art05.pho $L5
+	layer art04.pho $L4
+	layer art03.pho $L3
+	layer art02.pho $L2
+	layer art01.pho $FRONT
+#	layer $NAME-PCB_Edges.gbr $EDGE2
+	layers_end
+
+	run_gerbv "$1"
+}
+
+
+all()
+{
+	front _front.png
+	back _back.png
+	conn _conn.png
+	montage -geometry +4+4 _front.png _back.png _conn.png "$1"
+	rm -f _front.png _back.png _conn.png
+}
+
+drill=
+if [ "$1" = -d ]; then
+	drill=$2
+	shift 2
+fi
+
+[ "$4" ] && usage
+[ ! "$3" ] && usage
+
+NAME=$1
+OUT=$3
+
+case "$2" in
+	front|back|conn) ;;
+	all) ;;
+	*)	usage;;
+esac
+
+$2 "$OUT"
+
+#rm -f _gvp
