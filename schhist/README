@@ -5,7 +5,7 @@ The schhist system walks the git revision history of a KiCad project
 and produces Web-browseable graphical differences of the schematics.
 
 It does so by checking out each revision from git, sanitizing the
-project to preven problems what would cause eeschema to stop and
+project to prevent problems what would cause eeschema to stop and
 display an error dialog, using eeschema to "plot" the project to
 Postscript, making some small adjustments (position, line width) to
 the Postscript, converting it to PPM with Ghostscript, making a
