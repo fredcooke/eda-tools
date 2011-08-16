@@ -2,8 +2,8 @@
 #
 # dsv - Improved data sheet viewer
 #
-# Written 2010 by Werner Almesberger
-# Copyright 2010 Werner Almesberger
+# Written 2010, 2011 by Werner Almesberger
+# Copyright 2010, 2011 Werner Almesberger
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -30,10 +30,12 @@ DSV_DIR=.dsv
 
 usage()
 {
-    echo "usage: $0 <component>" 2>&1
+    echo "usage: $0 [-p] <component>" 2>&1
     echo "       $0 help" 2>&1
     echo "       $0 [ls]" 2>&1
     echo "       $0 setup <info-file> ..." 2>&1
+    echo 2>&1
+    echo "  -p   show the path instead of displaying the file " 2>&1
     exit 1
 }
 
@@ -148,7 +150,11 @@ search()
 		    echo "$1 -> $file: does not exist" 2>&1
 		    exit 1
 		fi
-		${DSV_PDFVIEWER:-xpdf} "$DSV_DIR/$file"
+		if $path; then
+		    echo "`pwd`/$DSV_DIR/$file"
+		else
+		    ${DSV_PDFVIEWER:-xpdf} "$DSV_DIR/$file"
+		fi
 		exit
 	    fi
 	fi
@@ -159,6 +165,12 @@ search()
     done
 }
 
+
+path=false
+if [ "$1" = -p ]; then
+    path=true
+    shift
+fi
 
 case "$1" in
     help|-*)	usage;;
