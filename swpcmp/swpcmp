@@ -1,0 +1,65 @@
+#!/usr/bin/perl
+
+sub usage
+{
+	print STDERR "usage: $0 name=name ... [file ...]\n";
+	exit(1);
+}
+
+
+&usage if $ARGV[0] =~ /^-/;
+&usage if !@ARGV;
+
+while ($ARGV[0] =~ /=/) {
+	die "already renaming component $`" if defined $map{$`};
+	die "already renaming component $'" if defined $map{$'};
+	$map{$`} = $';
+	$map{$'} = $`;
+	shift @ARGV;
+}
+
+undef $mod;
+while (<>) {
+	if (/^\$MODULE\s+(\S+)\s*$/) {
+		die "\$MODULE within \$MODULE" if $mod;
+		$mod = 1;
+		$fp = $1;
+		undef $name;
+	}
+	if (!$mod) {
+		print;
+		next;
+	}
+	if (/^(T0\s.*")([^"]+)("\s*)$/) {
+		die "duplicate name \"$name\" vs. \"$2\"" if defined $name;
+		$name = $2;
+		if (defined $map{$name}) {
+			print "$1$map{$name}$3";
+		} else {
+			print;
+		}
+	} else {
+		print;
+	}
+	if (/^\$EndMODULE/) {
+		die "module has no name" unless defined $name;
+		if (defined $map{$name}) {
+			if ($mod{$map{$name}}) {
+				die "footprint mismatch: $name/$fp vs. ".
+				    $map{$name}."/".$fp{$map{$name}} unless
+				    $fp eq $fp{$map{$name}};
+				delete $map{$map{$name}};
+				delete $map{$name};
+			} else {
+				$mod{$name} = 1;
+				$fp{$name} = $fp;
+			}
+		}
+		$mod = 0;
+	}
+}
+
+die "EOF within module" if $mod;
+for (keys %map) {
+	die "not swapped: ".join(", ", sort keys %map);
+}

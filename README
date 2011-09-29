@@ -21,5 +21,7 @@ This is a collection of utilities for Electronic Design Automation:
 - schhist: a system to walk a KiCad project's git revision history and
   generating Web-browseable graphical differences of the schematics.
 
+- swpcmp: swap components in a layout
+
 Each utility can have its own licensing terms. They're specified in the
 respective directory or in the file itself.
