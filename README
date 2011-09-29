@@ -13,6 +13,11 @@ This is a collection of utilities for Electronic Design Automation:
 - fpd2pdf: convert a set of footprints (made with FPED) into a
   reviewer-friendly PDF.
 
+- fab: set of tools to convert/generate files for fabrication
+
+- mlztx: set of tools to copy text across layers or across text fields
+  in a layout, e.g., to place a version number at several locations
+
 - schhist: a system to walk a KiCad project's git revision history and
   generating Web-browseable graphical differences of the schematics.
 
