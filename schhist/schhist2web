@@ -394,7 +394,7 @@ for n in `cd "$dir" && git rev-list $first..HEAD~1` $first; do
 	if [ -f "$a0" -a -f "$b0" ]; then
 	    s="$s<TD align=\"center\" valign=\"middle\">"
 	    if ! pngdiff cat "$diff" "$a1" "$b1" "$a0" "$b0"; then
-		s="$s<IMG src=\"unchanged.png\""
+		s="$s<IMG src=\"unchanged.png\">"
 		continue
 	    fi
 	    pngdiff shrink "$thumb" -f $THUMB_OPTS "$a2" "$b2" "$a0" "$b0" ||
